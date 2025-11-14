@@ -1,65 +1,138 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useState } from "react";
+import { GoogleMap, MarkerF, useJsApiLoader } from "@react-google-maps/api";
+
+type ShipLocation = {
+  name: string;
+  lat: number;
+  lng: number;
+  lastUpdated: string;
+};
+
+const mapContainerStyle = {
+  width: "100%",
+  height: "100%",
+};
+
+export default function HomePage() {
+  const [ship, setShip] = useState<ShipLocation | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
+  });
+
+  async function fetchShipLocation() {
+    try {
+      setError(null);
+      const res = await fetch("/api/ship-location");
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`);
+      }
+      const data = (await res.json()) as ShipLocation;
+      setShip(data);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Failed to load ship location");
+    }
+  }
+
+  useEffect(() => {
+    // initial fetch
+    fetchShipLocation();
+
+    // poll every 60s
+    const id = setInterval(fetchShipLocation, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const center =
+    ship && Number.isFinite(ship.lat) && Number.isFinite(ship.lng)
+      ? { lat: ship.lat, lng: ship.lng }
+      : { lat: 25.7617, lng: -80.1918 }; // fallback: Miami
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <main className="page-root">
+
+      {/* LEFT: MAP */}
+      <section className="map-pane">
+        {isLoaded && ship ? (
+          <GoogleMap
+            mapContainerStyle={mapContainerStyle}
+            center={center}
+            zoom={6}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <MarkerF position={center} />
+          </GoogleMap>
+        ) : (
+          <div className="map-loading">
+            {error ? `Error: ${error}` : "Loading map & ship position…"}
+          </div>
+        )}
+      </section>
+
+      {/* RIGHT: INFO PANEL */}
+      <section className="info-pane">
+        <div className="info-header">
+          <h1 className="ship-name">{ship?.name ?? "Cruise Ship"}</h1>
+          <p className="subtitle">Live Position Overview</p>
         </div>
-      </main>
-    </div>
+
+        <div className="ship-card">
+          <img
+            src="/islander.jpg"
+            alt={ship?.name ?? "Ship"}
+            className="ship-image"
+          />
+        </div>
+
+        <div className="stats-grid">
+          <div className="stat-box">
+            <div className="stat-label">Latitude</div>
+            <div className="stat-value">
+              {ship ? `${ship.lat.toFixed(4)}°` : "--"}
+            </div>
+          </div>
+          <div className="stat-box">
+            <div className="stat-label">Longitude</div>
+            <div className="stat-value">
+              {ship ? `${ship.lng.toFixed(4)}°` : "--"}
+            </div>
+          </div>
+          <div className="stat-box">
+            <div className="stat-label">Last Update</div>
+            <div className="stat-value">
+              {ship
+                ? new Date(ship.lastUpdated).toLocaleString()
+                : "Waiting…"}
+            </div>
+          </div>
+          
+          {/* placeholders for future API fields */}
+          <div className="stat-box">
+            <div className="stat-label">Speed</div>
+            <div className="stat-value">-- kts</div>
+          </div>
+          <div className="stat-box">
+            <div className="stat-label">Course</div>
+            <div className="stat-value">--°</div>
+          </div>
+          <div className="stat-box">
+            <div className="stat-label">MMSI</div>
+            <div className="stat-value">
+              {process.env.NEXT_PUBLIC_MARINESIA_MMSI ?? "–"}
+            </div>
+          </div>
+        </div>
+
+        {error && <p className="error-text">Error: {error}</p>}
+
+        <div className="footer-bar">
+          <span>Sunset at present position:</span>
+          <span className="footer-value">TBD</span>
+        </div>
+      </section>
+    </main>
   );
 }
