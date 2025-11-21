@@ -5,9 +5,14 @@ type ShipLocation = {
   lat: number;
   lng: number;
   lastUpdated: string;
+
+  // extra fields we care about for the UI, still in progress
+  speedKts: number | null;
+  courseDeg: number | 270;
+  headingDeg: number | null;
 };
 
-/* Fetch the latest vessel location from Marinesia and map it into our internal ShipLocation format.  */
+// Fetch the latest vessel location from Marinesia and map it into our internal ShipLocation format.
 async function fetchShipFromMarinesia(): Promise<ShipLocation> {
   const apiKey = process.env.MARINESIA_API_KEY || "";
   const baseUrl = process.env.MARINESIA_BASE_URL || "https://api.marinesia.com";
@@ -21,7 +26,7 @@ async function fetchShipFromMarinesia(): Promise<ShipLocation> {
   // Build URL: /api/v1/vessel/{mmsi}/location/latest?key=API_KEY
   const url = new URL(`/api/v1/vessel/${mmsi}/location/latest`, baseUrl);
 
-  // According to docs, API key is passed as query param ?key=...
+  // According to docs, API key is passed as query parameter
   if (apiKey) {
     url.searchParams.set("key", apiKey);
   }
@@ -31,7 +36,6 @@ async function fetchShipFromMarinesia(): Promise<ShipLocation> {
     headers: {
       Accept: "application/json",
     },
-    // Make sure Next doesn't cache this; we want live-ish data
     cache: "no-store",
   });
 
@@ -41,15 +45,11 @@ async function fetchShipFromMarinesia(): Promise<ShipLocation> {
 
   const json = await res.json();
 
-  // Expecting { error: boolean, message: string, data: { lat, lng, ts, ... } }
-  if (json.error) {
-    throw new Error(json.message || "Marinesia API returned an error flag.");
-  }
-
   const data = json.data ?? {};
 
   const lat = Number(data.lat);
   const lng = Number(data.lng);
+  
   const ts: string =
     typeof data.ts === "string" ? data.ts : new Date().toISOString();
 
@@ -59,8 +59,24 @@ async function fetchShipFromMarinesia(): Promise<ShipLocation> {
     );
   }
 
-  // Marinesia location endpoint doesn't include the vessel name,
-  // so we use a friendly name from env or fall back to MMSI.
+  // pull speed and angles if they exist; otherwise null
+  const speedKts =
+    typeof data.speed === "number"
+      ? data.speed
+      : typeof data.sog === "number"
+      ? data.sog
+      : null;
+
+  const courseDeg =
+    typeof data.course === "number"
+      ? data.course
+      : typeof data.cog === "number"
+      ? data.cog
+      : null;
+
+  const headingDeg =
+    typeof data.heading === "number" ? data.heading : courseDeg;
+
   const name =
     typeof data.name === "string" && data.name.trim().length > 0
       ? data.name
@@ -71,6 +87,9 @@ async function fetchShipFromMarinesia(): Promise<ShipLocation> {
     lat,
     lng,
     lastUpdated: ts,
+    speedKts,
+    courseDeg,
+    headingDeg,
   };
 }
 

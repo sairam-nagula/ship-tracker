@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { GoogleMap, MarkerF, useJsApiLoader } from "@react-google-maps/api";
 
 type ShipLocation = {
@@ -8,6 +8,9 @@ type ShipLocation = {
   lat: number;
   lng: number;
   lastUpdated: string;
+  speedKts: number | null;
+  courseDeg: number | null;
+  headingDeg: number | null;
 };
 
 const mapContainerStyle = {
@@ -50,11 +53,28 @@ export default function HomePage() {
   const center =
     ship && Number.isFinite(ship.lat) && Number.isFinite(ship.lng)
       ? { lat: ship.lat, lng: ship.lng }
-      : { lat: 25.7617, lng: -80.1918 }; // fallback: Miami
+      : { lat: 0, lng: 0 }; 
+      
+
+  // Build a Google Maps icon using /public/islander.jpg and rotate it
+  const shipIcon = useMemo(() => {
+    if (!isLoaded || typeof window === "undefined" || !ship) return undefined;
+
+    const g = (window as any).google?.maps;
+    if (!g) return undefined;
+
+    const heading = ship.headingDeg ?? ship.courseDeg ?? 0;
+
+    return {
+      url: "/shiptopview.png",              
+      scaledSize: new g.Size(64, 64),     
+      anchor: new g.Point(32, 32),        
+      rotation: heading,                 
+    } as google.maps.Icon;
+  }, [isLoaded, ship]);
 
   return (
     <main className="page-root">
-
       {/* LEFT: MAP */}
       <section className="map-pane">
         {isLoaded && ship ? (
@@ -63,7 +83,7 @@ export default function HomePage() {
             center={center}
             zoom={6}
           >
-            <MarkerF position={center} />
+            <MarkerF position={center} icon={shipIcon} />
           </GoogleMap>
         ) : (
           <div className="map-loading">
@@ -94,12 +114,14 @@ export default function HomePage() {
               {ship ? `${ship.lat.toFixed(4)}°` : "--"}
             </div>
           </div>
+
           <div className="stat-box">
             <div className="stat-label">Longitude</div>
             <div className="stat-value">
               {ship ? `${ship.lng.toFixed(4)}°` : "--"}
             </div>
           </div>
+
           <div className="stat-box">
             <div className="stat-label">Last Update</div>
             <div className="stat-value">
@@ -108,16 +130,21 @@ export default function HomePage() {
                 : "Waiting…"}
             </div>
           </div>
-          
-          {/* placeholders for future API fields */}
+
           <div className="stat-box">
             <div className="stat-label">Speed</div>
-            <div className="stat-value">-- kts</div>
+            <div className="stat-value">
+              {ship?.speedKts != null ? `${ship.speedKts.toFixed(1)} kts` : "--"}
+            </div>
           </div>
+
           <div className="stat-box">
             <div className="stat-label">Course</div>
-            <div className="stat-value">--°</div>
+            <div className="stat-value">
+              {ship?.courseDeg != null ? `${ship.courseDeg.toFixed(0)}°` : "--"}
+            </div>
           </div>
+
           <div className="stat-box">
             <div className="stat-label">MMSI</div>
             <div className="stat-value">
