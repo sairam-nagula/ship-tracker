@@ -81,7 +81,7 @@ export default function HomePage() {
           <GoogleMap
             mapContainerStyle={mapContainerStyle}
             center={center}
-            zoom={6}
+            zoom={7}
           >
             <MarkerF position={center} icon={shipIcon} />
           </GoogleMap>
@@ -95,8 +95,13 @@ export default function HomePage() {
       {/* RIGHT: INFO PANEL */}
       <section className="info-pane">
         <div className="info-header">
-          <h1 className="ship-name">{ship?.name ?? "Cruise Ship"}</h1>
-          <p className="subtitle">Live Position Overview</p>
+          <img
+            src="/MVAS_Islander Logo.png"
+            alt={"Logo"}
+            className="ship-logo"
+            />
+          {/* <h1 className="ship-name">{ship?.name ?? "Cruise Ship"}</h1>
+          <p className="subtitle">Live Position Overview</p> */}
         </div>
 
         <div className="ship-card">
