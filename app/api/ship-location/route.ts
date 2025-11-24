@@ -6,81 +6,77 @@ type ShipLocation = {
   lng: number;
   lastUpdated: string;
 
-  // extra fields we care about for the UI, still in progress
+  // extra fields we care about for the UI
   speedKts: number | null;
   courseDeg: number | 270;
   headingDeg: number | null;
 };
 
-// Fetch the latest vessel location from Marinesia and map it into our internal ShipLocation format.
-async function fetchShipFromMarinesia(): Promise<ShipLocation> {
-  const apiKey = process.env.MARINESIA_API_KEY || "";
-  const baseUrl = process.env.MARINESIA_BASE_URL || "https://api.marinesia.com";
-  const mmsi = process.env.MARINESIA_MMSI;
-  const fallbackName = process.env.SHIP_NAME || "Cruise Ship";
+// Fetch the latest vessel location from MTN and map it into our internal ShipLocation format.
+async function fetchShipFromMtnsat(): Promise<ShipLocation> {
+  // You can hard-code this, or put it in an env var like MTNSAT_URL
+  const url =
+    process.env.MTNSAT_URL ||
+    "https://customer-api.mtnsat.com/v1/accounts/1327/sites/916";
 
-  if (!mmsi) {
-    throw new Error("MARINESIA_MMSI is not set in environment variables.");
+  const token = process.env.MTNSAT_TOKEN; // put your Bearer token in .env
+
+  if (!token) {
+    throw new Error("MTNSAT_TOKEN is not set in environment variables.");
   }
 
-  // Build URL: /api/v1/vessel/{mmsi}/location/latest?key=API_KEY
-  const url = new URL(`/api/v1/vessel/${mmsi}/location/latest`, baseUrl);
-
-  // According to docs, API key is passed as query parameter
-  if (apiKey) {
-    url.searchParams.set("key", apiKey);
-  }
-
-  const res = await fetch(url.toString(), {
+  const res = await fetch(url, {
     method: "GET",
     headers: {
       Accept: "application/json",
+      Authorization: `Bearer ${token}`,
     },
     cache: "no-store",
   });
 
   if (!res.ok) {
-    throw new Error(`Marinesia API error: ${res.status} ${res.statusText}`);
+    throw new Error(`MTN API error: ${res.status} ${res.statusText}`);
   }
 
-  const json = await res.json();
+  const data = await res.json();
 
-  const data = json.data ?? {};
-
-  const lat = Number(data.lat);
-  const lng = Number(data.lng);
-  
-  const ts: string =
-    typeof data.ts === "string" ? data.ts : new Date().toISOString();
+  // Example fields from your screenshot:
+  // latitude, longitude, speed, location_updated_at, azimuth, site_name, account_name, etc.
+  const lat = Number(data.latitude);
+  const lng = Number(data.longitude);
 
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     throw new Error(
-      `Invalid coordinates from Marinesia (lat=${data.lat}, lng=${data.lng}).`
+      `Invalid coordinates from MTN (lat=${data.latitude}, lng=${data.longitude}).`
     );
   }
 
-  // pull speed and angles if they exist; otherwise null
+  const ts: string =
+    typeof data.location_updated_at === "string"
+      ? data.location_updated_at
+      : new Date().toISOString();
+
   const speedKts =
-    typeof data.speed === "number"
-      ? data.speed
-      : typeof data.sog === "number"
-      ? data.sog
+    data.speed !== undefined && data.speed !== null
+      ? Number(data.speed)
       : null;
 
-  const courseDeg =
-    typeof data.course === "number"
-      ? data.course
-      : typeof data.cog === "number"
-      ? data.cog
+  const azimuth =
+    data.azimuth !== undefined && data.azimuth !== null
+      ? Number(data.azimuth)
       : null;
 
-  const headingDeg =
-    typeof data.heading === "number" ? data.heading : courseDeg;
+  const courseDeg = azimuth ?? null;
+  const headingDeg = azimuth ?? null;
 
+  const fallbackName = process.env.SHIP_NAME || "Cruise Ship";
   const name =
-    typeof data.name === "string" && data.name.trim().length > 0
-      ? data.name
-      : `${fallbackName} (MMSI ${data.mmsi ?? mmsi})`;
+    (typeof data.site_name === "string" && data.site_name.trim().length > 0
+      ? data.site_name
+      : typeof data.account_name === "string" &&
+        data.account_name.trim().length > 0
+      ? data.account_name
+      : fallbackName) || fallbackName;
 
   return {
     name,
@@ -95,7 +91,7 @@ async function fetchShipFromMarinesia(): Promise<ShipLocation> {
 
 export async function GET() {
   try {
-    const shipData = await fetchShipFromMarinesia();
+    const shipData = await fetchShipFromMtnsat();
     return NextResponse.json(shipData, { status: 200 });
   } catch (error: any) {
     console.error("Error in /api/ship-location:", error);

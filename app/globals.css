@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
-/* Base light/dark colors used by Tailwind theme */
+/* ==========================================================================
+   1. DESIGN TOKENS / ROOT VARIABLES
+   ========================================================================== */
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -21,6 +24,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Tailwind theme bridge */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -28,7 +32,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Dark-mode baseline for non-dashboard pages */
+/* Prefer-dark baseline */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #020617;
@@ -36,7 +40,10 @@
   }
 }
 
-/* Global body defaults */
+/* ==========================================================================
+   2. GLOBAL BASE STYLES
+   ========================================================================== */
+
 body {
   margin: 0;
   background: radial-gradient(
@@ -50,54 +57,67 @@ body {
     "Segoe UI", sans-serif;
 }
 
-/* --- Ship Tracker Layout --- */
+/* ==========================================================================
+   3. SHIP TRACKER LAYOUT (SINGLE-COLUMN, CENTERED)
+   ========================================================================== */
 
-/* Root layout: map + info side by side */
+/* Root wrapper for the page */
 .page-root {
-  display: flex;
   min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+  background:  var(--bg-panel); /* site background behind the panel */
 }
 
-/* Left: map pane */
-.map-pane {
-  flex: 3;
-  min-width: 0;
-  position: relative;
+/* Main content panel */
+.info-pane {
+  width: 100%;
+  max-width: 1100px;
+  padding: 2rem 2.5rem;
+  background: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+  border-radius: 1.25rem;
+}
+
+/* ==========================================================================
+   3.1 MAP MODULE / CARD
+   ========================================================================== */
+
+.map-card {
+  height: 320px;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 1.5rem;
   background: radial-gradient(circle at top, #033552, #020617);
-  border-right: 1px solid rgba(15, 23, 42, 0.7);
 }
 
+/* Shown while the map is loading or erroring */
 .map-loading {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100%;
   color: var(--text-muted);
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
-/* Right: info panel */
-.info-pane {
-  flex: 2;
-  padding: 2rem 2.5rem;
-  background: var(--bg-panel);
-  display: flex;
-  flex-direction: column;
-  box-shadow: -8px 0 30px rgba(2, 6, 23, 0.9);
-}
+/* ==========================================================================
+   3.2 HEADER / LOGO
+   ========================================================================== */
 
-/* Header / title area */
 .info-header {
   margin-bottom: 1.5rem;
 }
 
 .ship-logo {
-  width: 50%;       
-  height: auto;     
-  display: block;   
-  margin: 0 auto;        
-  padding: 0; 
-  align-items: center;
+  width: 50%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  padding: 0;
 }
 
 .ship-name {
@@ -115,7 +135,10 @@ body {
   font-size: 0.92rem;
 }
 
-/* Ship image card */
+/* ==========================================================================
+   3.3 SHIP IMAGE CARD
+   ========================================================================== */
+
 .ship-card {
   border-radius: 1rem;
   overflow: hidden;
@@ -135,7 +158,10 @@ body {
   display: block;
 }
 
-/* Stats grid */
+/* ==========================================================================
+   3.4 STATS GRID
+   ========================================================================== */
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -166,7 +192,10 @@ body {
   color: var(--text-soft);
 }
 
-/* Error text */
+/* ==========================================================================
+   3.5 ERROR + FOOTER
+   ========================================================================== */
+
 .error-text {
   color: #fecaca;
   font-size: 0.9rem;
@@ -195,18 +224,27 @@ body {
   font-weight: 600;
 }
 
-/* Make layout stack on very small screens */
-@media (max-width: 768px) {
-  .page-root {
-    flex-direction: column;
-  }
+/* ==========================================================================
+   4. RESPONSIVE TWEAKS
+   ========================================================================== */
 
-  .info-pane {
-    order: -1;
-    padding: 1.5rem;
-  }
+/* 70 / 30 split */
+.map-pane {
+  flex: 7;
+  min-width: 0;
+  padding: 2rem 0 2rem 2rem;
+}
 
-  .ship-image {
-    height: 140px;
-  }
+.info-pane {
+  flex: 3;
+  padding: 2rem 2rem 2rem 1rem;
+}
+
+/* Map looks like a module/card, not full pane */
+.map-card {
+  height: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #020617;
 }
