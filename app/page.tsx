@@ -1,23 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { ShipMap } from "./components/ShipMap";
+import { HomeShipMap } from "./components/HomeShipMap";
 import { useShipLocation } from "./components/useShipLocation";
-
-
+import { useGoogleMapsLoader } from "./components/useGoogleMapsLoader"; 
 
 export default function HomePage() {
-  // get islander and paradise ship location every 30 seconds (30000ms)
-    const {
-    ship: islanderShip,
-    error: islanderError,
-  } = useShipLocation(30000, "islander");
+  // Load Google Maps once for both mini maps
+  const { isLoaded } = useGoogleMapsLoader();  
 
-  const {
-    ship: paradiseShip,
-    error: paradiseError,
-  } = useShipLocation(30000, "paradise");
+  const { ship: islanderShip, error: islanderError } =
+    useShipLocation(30000, "islander");
 
+  const { ship: paradiseShip, error: paradiseError } =
+    useShipLocation(30000, "paradise");
 
   return (
     <main className="home-root">
@@ -51,7 +47,11 @@ export default function HomePage() {
             </header>
 
             <div className="home-map-wrapper">
-              <ShipMap ship={islanderShip} error={islanderError} />
+              <HomeShipMap
+                ship={islanderShip}
+                error={islanderError}
+                isLoaded={isLoaded}
+              />
             </div>
           </section>
 
@@ -78,7 +78,11 @@ export default function HomePage() {
             </header>
 
             <div className="home-map-wrapper">
-              <ShipMap ship={paradiseShip} error={paradiseError} />
+              <HomeShipMap
+                ship={paradiseShip}
+                error={paradiseError}
+                isLoaded={isLoaded}
+              />
             </div>
           </section>
         </div>

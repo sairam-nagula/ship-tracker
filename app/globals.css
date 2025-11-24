@@ -249,18 +249,16 @@ body {
   background: #020617;
 }
 
-
-/* ==========================================================================
-   5. main page
+/* ==========================================================================  
+   5. HOMEPAGE — SOLID BRAND COLOR  
    ========================================================================== */
 
-   /* Root Layout */
 .home-root {
   display: flex;
   justify-content: center;
   padding: 40px 20px;
-  background: #f8fafc;
   min-height: 100vh;
+  background: #00407A; /* Navy */
 }
 
 .home-inner {
@@ -274,17 +272,18 @@ body {
   font-size: 2.2rem;
   font-weight: 700;
   margin-bottom: 5px;
-  color: #0f172a;
+  color: #FFFFFF;
+  letter-spacing: 0.04em;
 }
 
 .home-subtitle {
   text-align: center;
-  font-size: 1.1rem;
-  color: #475569;
+  font-size: 1.05rem;
+  color: rgba(255, 255, 255, 0.75);
   margin-bottom: 40px;
 }
 
-/* Grid for the two ship sections */
+/* Grid for ship panels */
 .home-grid {
   display: grid;
   gap: 30px;
@@ -296,15 +295,17 @@ body {
   }
 }
 
-/* Ship card layout */
+/* Ship cards */
 .home-ship-card {
-  background: white;
+  background: rgba(0, 40, 80, 0.85); /* soft navy */
   border-radius: 14px;
-  padding: 22px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   display: flex;
   flex-direction: column;
   gap: 18px;
+  backdrop-filter: blur(6px);
 }
 
 /* Header inside each card */
@@ -327,31 +328,33 @@ body {
 }
 
 .home-ship-text h2 {
-  font-size: 1.3rem;
-  font-weight: 600;
+  font-size: 1.35rem;
+  font-weight: 700;
   margin: 0;
+  color: var(--accent-soft);
 }
 
 .home-ship-sub {
   font-size: 0.9rem;
-  color: #64748b;
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
-/* Button linking to that ship's page */
+/* Button */
 .home-ship-button {
   padding: 10px 18px;
-  background: #1e40af;
-  color: white;
+  background: #6699C2; /* Ocean */
+  color: #00264a;
   border-radius: 8px;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
   text-decoration: none;
-  transition: background 0.15s ease;
+  transition: 0.15s ease;
 }
 
 .home-ship-button:hover {
-  background: #1d4ed8;
+  background: #7fb3dc;
+  transform: translateY(-1px);
 }
 
 /* Map wrapper */
@@ -360,7 +363,8 @@ body {
   height: 280px;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #001829;
 }
 
 /* Make maps taller on desktop */

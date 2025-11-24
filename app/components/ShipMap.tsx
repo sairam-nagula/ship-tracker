@@ -1,9 +1,11 @@
 // components/ShipMap.tsx
 "use client";
 
+import { GoogleMap, MarkerF } from "@react-google-maps/api";
 import { useMemo } from "react";
-import { GoogleMap, MarkerF, useJsApiLoader } from "@react-google-maps/api";
 import type { ShipLocation } from "./useShipLocation";
+import { useGoogleMapsLoader } from "./useGoogleMapsLoader"; // ✅ NEW
+
 
 const mapContainerStyle = {
   width: "100%",
@@ -18,11 +20,7 @@ type Props = {
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAP_ID;
 
 export function ShipMap({ ship, error }: Props) {
-  const { isLoaded } = useJsApiLoader({
-    id: "google-map-script",
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
-    mapIds: MAP_ID ? [MAP_ID] : undefined,
-  });
+  const { isLoaded } = useGoogleMapsLoader();
 
   const center =
     ship && Number.isFinite(ship.lat) && Number.isFinite(ship.lng)
