@@ -1,4 +1,3 @@
-// components/ShipInfoPanel.tsx
 "use client";
 
 import type { ShipLocation } from "./useShipLocation";
@@ -6,25 +5,26 @@ import type { ShipLocation } from "./useShipLocation";
 type Props = {
   ship: ShipLocation | null;
   error: string | null;
+  logoSrc: string;   // Islander vs Paradise logo
+  heroSrc: string;   // Big ship photo
+  shipLabel: string; // For alt text
 };
 
-export function ShipInfoPanel({ ship, error }: Props) {
+export function ShipInfoPanel({
+  ship,
+  error,
+  logoSrc,
+  heroSrc,
+  shipLabel,
+}: Props) {
   return (
     <section className="info-pane">
       <div className="info-header">
-        <img
-          src="/MVAS_Islander Logo.png"
-          alt="Logo"
-          className="ship-logo"
-        />
+        <img src={logoSrc} alt={`${shipLabel} logo`} className="ship-logo" />
       </div>
 
       <div className="ship-card">
-        <img
-          src="/islander.jpg"
-          alt={ship?.name ?? "Ship"}
-          className="ship-image"
-        />
+        <img src={heroSrc} alt={shipLabel} className="ship-image" />
       </div>
 
       <div className="stats-grid">

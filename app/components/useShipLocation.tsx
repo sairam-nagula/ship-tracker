@@ -1,4 +1,3 @@
-// components/useShipLocation.ts
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,31 +12,52 @@ export type ShipLocation = {
   headingDeg: number | null;
 };
 
-export function useShipLocation(pollMs: number = 60_000) {
-  const [ship, setShip] = useState<ShipLocation | null>(null);
+export type ShipKey = "islander" | "paradise";
+
+export function useShipLocation(pollMs: number, ship: ShipKey) {
+  const [shipData, setShipData] = useState<ShipLocation | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function fetchShipLocation() {
+  async function fetchShip() {
     try {
       setError(null);
-      const res = await fetch("/api/ship-location");
+
+      const endpoint =
+        ship === "paradise"
+          ? "/api/paradise-ship-location"
+          : "/api/islander-ship-location"; // ✅ FIXED
+
+      const res = await fetch(endpoint, { cache: "no-store" });
       if (!res.ok) {
         throw new Error(`API error: ${res.status}`);
       }
+
       const data = (await res.json()) as ShipLocation;
-      setShip(data);
+      setShipData(data);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Failed to load ship location");
+      setError(err.message ?? "Failed to load ship location");
     }
   }
 
   useEffect(() => {
-    fetchShipLocation();
+    let cancel = false;
 
-    const id = setInterval(fetchShipLocation, pollMs);
-    return () => clearInterval(id);
-  }, [pollMs]);
+    async function initial() {
+      if (!cancel) await fetchShip();
+    }
 
-  return { ship, error };
+    initial();
+
+    const id = setInterval(() => {
+      if (!cancel) fetchShip();
+    }, pollMs);
+
+    return () => {
+      cancel = true;
+      clearInterval(id);
+    };
+  }, [pollMs, ship]);
+
+  return { ship: shipData, error };
 }
