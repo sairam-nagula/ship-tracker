@@ -66,10 +66,45 @@ export function ShipInfoPanel({
 
       {error && <p className="error-text">Error: {error}</p>}
 
-      <div className="footer-bar">
-        <span>Sunset at present position:</span>
-        <span className="footer-value">TBD</span>
+            <div className="footer-bar">
+        <span>Weather at present position:</span>
+
+        {ship?.weatherTempC != null ||
+        ship?.weatherDescription ||
+        ship?.weatherIcon ? (
+          <span
+            className="footer-value"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              textTransform: "capitalize",
+            }}
+          >
+            {/* Temperature */}
+            {ship?.weatherTempC != null && (
+              <span>{ship.weatherTempC.toFixed(1)}°C</span>
+            )}
+
+            {/* Short description like "clear sky" */}
+            {ship?.weatherDescription && (
+              <span>{ship.weatherDescription}</span>
+            )}
+
+            {/* Weather icon */}
+            {ship?.weatherIcon && (
+              <img
+                src={`https://openweathermap.org/img/wn/${ship.weatherIcon}@2x.png`}
+                alt={ship.weatherDescription ?? "Weather icon"}
+                style={{ width: 32, height: 32 }}
+              />
+            )}
+          </span>
+        ) : (
+          <span className="footer-value">Loading…</span>
+        )}
       </div>
+
     </section>
   );
 }

@@ -10,7 +10,13 @@ export type ShipLocation = {
   speedKts: number | null;
   courseDeg: number | null;
   headingDeg: number | null;
+
+  // OpenWeather fields
+  weatherTempC: number | null;
+  weatherDescription: string | null;
+  weatherIcon: string | null; 
 };
+
 
 export type ShipKey = "islander" | "paradise";
 

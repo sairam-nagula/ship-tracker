@@ -18,11 +18,16 @@ export default function HomePage() {
   return (
     <main className="home-root">
       <div className="home-inner">
-        <h1 className="home-title">Margaritaville at Sea – Ship Tracker</h1>
+        <img
+          src="/MVASlogo.png"
+          alt="MVAS Logo"
+          className="main-Logo"
+        />
+        <h1 className="home-title">Ship Tracker</h1>
         <p className="home-subtitle">
           Choose a vessel to view its live position and status.
         </p>
-
+ 
         <div className="home-grid">
           {/* Islander card */}
           <section className="home-ship-card">

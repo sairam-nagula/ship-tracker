@@ -7,7 +7,9 @@ type ShipLocation = {
   lastUpdated: string;
   speedKts: number | null;
   courseDeg: number | null;
-  headingDeg: number | null;
+  weatherTempC: number | null;
+  weatherDescription: string | null;
+  weatherIcon: string | null;
 };
 
 const MTN_URL =
@@ -16,12 +18,11 @@ const MTN_URL =
 export async function GET() {
   try {
     const token = process.env.MTNSAT_TOKEN;
+    const weatherKey = process.env.OPENWEATHER_API_KEY; 
+
     if (!token) {
       throw new Error("MTNSAT_TOKEN is not set in environment variables.");
     }
-
-    // You can set this in env: MTNSAT_MMSI=311000969
-    const targetMmsi = process.env.MTNSAT_MMSI || "311000969";
 
     const res = await fetch(MTN_URL, {
       method: "GET",
@@ -38,19 +39,12 @@ export async function GET() {
 
     const json = await res.json();
 
-    if (!json || !Array.isArray(json.rows)) {
-      throw new Error("Unexpected MTN API shape: missing rows array.");
-    }
-
-    // Prefer a robust identifier (MMSI) instead of the name text
     const paradiseRow = (json.rows as any[]).find(
-      (row) => String(row.mmsi) === String(targetMmsi)
+      (row) => row.site_name === "MAS Paradise"
     );
 
     if (!paradiseRow) {
-      throw new Error(
-        `Ship with MMSI ${targetMmsi} not found in MTN site list.`
-      );
+      throw new Error("MAS Paradise not found in MTN site list.");
     }
 
     const lat = Number(paradiseRow.latitude);
@@ -58,7 +52,7 @@ export async function GET() {
 
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       throw new Error(
-        `Invalid coordinates (lat=${paradiseRow.latitude}, lng=${paradiseRow.longitude})`
+        `Invalid coordinates for Paradise (lat=${paradiseRow.latitude}, lng=${paradiseRow.longitude})`
       );
     }
 
@@ -77,14 +71,42 @@ export async function GET() {
         ? paradiseRow.location_updated_at
         : new Date().toISOString();
 
-    const nameRaw =
-      typeof paradiseRow.site_name === "string"
-        ? paradiseRow.site_name
-        : paradiseRow.account_name;
     const name =
-      typeof nameRaw === "string" && nameRaw.trim()
-        ? nameRaw.trim()
+      typeof paradiseRow.site_name === "string" && paradiseRow.site_name.trim()
+        ? paradiseRow.site_name
         : "MAS Paradise";
+
+    // =========================
+    // OpenWeather fetch (optional / best-effort)
+    // =========================
+    let weatherTempC: number | null = null;
+    let weatherDescription: string | null = null;
+    let weatherIcon: string | null = null;
+
+    if (weatherKey) {
+      try {
+        const wRes = await fetch(
+          `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${weatherKey}&units=metric`,
+          { cache: "no-store" }
+        );
+
+        if (wRes.ok) {
+          const wJson: any = await wRes.json();
+          const temp = wJson?.main?.temp;
+          const desc = wJson?.weather?.[0]?.description;
+          const icon = wJson?.weather?.[0]?.icon;
+
+          weatherTempC = typeof temp === "number" ? temp : null;
+          weatherDescription =
+            typeof desc === "string" ? desc : null;
+          weatherIcon = typeof icon === "string" ? icon : null;
+        } else {
+          console.warn("OpenWeather error:", wRes.status, wRes.statusText);
+        }
+      } catch (wErr) {
+        console.warn("OpenWeather fetch failed:", wErr);
+      }
+    }
 
     const shipLocation: ShipLocation = {
       name,
@@ -93,7 +115,9 @@ export async function GET() {
       lastUpdated: ts,
       speedKts,
       courseDeg: azimuth ?? null,
-      headingDeg: azimuth ?? null,
+      weatherTempC,
+      weatherDescription,
+      weatherIcon,
     };
 
     return NextResponse.json(shipLocation, { status: 200 });

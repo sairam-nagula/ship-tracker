@@ -28,6 +28,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        {/* <footer className="site-footer">
+          © {new Date().getFullYear()} Margaritaville at Sea — All Rights Reserved
+        </footer> */}
+
       </body>
     </html>
   );

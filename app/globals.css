@@ -260,7 +260,12 @@ body {
   min-height: 100vh;
   background: #00407A; /* Navy */
 }
-
+.main-Logo {
+  width: 25%;
+  margin: 0 auto;
+  display: block;
+}
+ 
 .home-inner {
   width: 100%;
   max-width: 1200px;
@@ -372,4 +377,27 @@ body {
   .home-map-wrapper {
     height: 340px;
   }
+}
+
+/* ============================================================
+  COPYRIGHT FOOTER 
+   ============================================================ */
+
+.site-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 12px 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #e6f2ff;      /* light ocean white */
+  background: #001931; /* Navy */
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  z-index: 999;
+}
+
+/* Make sure page content doesn't hide behind footer */
+body {
+  padding-bottom: 50px; /* height of footer */
 }
