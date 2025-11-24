@@ -12,71 +12,106 @@ type ShipLocation = {
   headingDeg: number | null;
 };
 
-// Fetch the latest vessel location from MTN and map it into our internal ShipLocation format.
+type MtnSitesResponse = {
+  total: number;
+  rows: MtnSiteRow[];
+};
+
+type MtnSiteRow = {
+  site_id: number;
+  site_name: string;
+  account_id: number;
+  account_name: string;
+  latitude: number;
+  longitude: number;
+  speed: number | null;
+  location_updated_at: string;
+  azimuth?: number | null;
+  // ...we don’t need the rest for now
+};
+
+const MTN_URL =
+  "https://customer-api.mtnsat.com/v1/sites?page=1&with_usage=0&limit=10000";
+
+// Fetch the latest vessel location from MTN /sites and map it into our internal ShipLocation format.
 async function fetchShipFromMtnsat(): Promise<ShipLocation> {
-  // You can hard-code this, or put it in an env var like MTNSAT_URL
-  const url =
-    process.env.MTNSAT_URL ||
-    "https://customer-api.mtnsat.com/v1/accounts/1327/sites/916";
-
-  const token = process.env.MTNSAT_TOKEN; // put your Bearer token in .env
-
+  const token = process.env.MTNSAT_TOKEN;
   if (!token) {
     throw new Error("MTNSAT_TOKEN is not set in environment variables.");
   }
 
+  const url = MTN_URL;
+
   const res = await fetch(url, {
     method: "GET",
     headers: {
-      Accept: "application/json",
       Authorization: `Bearer ${token}`,
+      Accept: "application/json, text/plain, */*",
+      "sec-ch-ua-platform": '"Windows"',
+      Referer: "https://customer.fmcglobalsat.com/",
+      "sec-ch-ua":
+        '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+      "Content-Type": "application/x-www-form-urlencoded",
     },
     cache: "no-store",
   });
 
   if (!res.ok) {
-    throw new Error(`MTN API error: ${res.status} ${res.statusText}`);
-  }
-
-  const data = await res.json();
-
-  // Example fields from your screenshot:
-  // latitude, longitude, speed, location_updated_at, azimuth, site_name, account_name, etc.
-  const lat = Number(data.latitude);
-  const lng = Number(data.longitude);
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    const text = await res.text().catch(() => "");
     throw new Error(
-      `Invalid coordinates from MTN (lat=${data.latitude}, lng=${data.longitude}).`
+      `MTN /sites API error: ${res.status} ${res.statusText} ${text}`
     );
   }
 
-  const ts: string =
-    typeof data.location_updated_at === "string"
-      ? data.location_updated_at
+  const data = (await res.json()) as MtnSitesResponse;
+
+  if (!data || !Array.isArray(data.rows) || data.rows.length === 0) {
+    throw new Error("MTN /sites API returned no rows.");
+  }
+
+  // Use MAS Islander only for now (site_id 916 or name "MAS Islander")
+  const islander =
+    data.rows.find((row) => row.site_id === 916) ||
+    data.rows.find((row) => row.site_name === "MAS Islander");
+
+  if (!islander) {
+    throw new Error("MAS Islander site not found in MTN /sites response.");
+  }
+
+  const lat = Number(islander.latitude);
+  const lng = Number(islander.longitude);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    throw new Error(
+      `Invalid coordinates from MTN (lat=${islander.latitude}, lng=${islander.longitude}).`
+    );
+  }
+
+  const ts =
+    typeof islander.location_updated_at === "string" &&
+    islander.location_updated_at.length > 0
+      ? islander.location_updated_at
       : new Date().toISOString();
 
   const speedKts =
-    data.speed !== undefined && data.speed !== null
-      ? Number(data.speed)
+    islander.speed !== null && islander.speed !== undefined
+      ? Number(islander.speed)
       : null;
 
   const azimuth =
-    data.azimuth !== undefined && data.azimuth !== null
-      ? Number(data.azimuth)
-      : null;
+    typeof islander.azimuth === "number" ? islander.azimuth : null;
 
-  const courseDeg = azimuth ?? null;
+  const courseDeg = (azimuth ?? 270) as number | 270; // default 270 if missing
   const headingDeg = azimuth ?? null;
 
   const fallbackName = process.env.SHIP_NAME || "Cruise Ship";
   const name =
-    (typeof data.site_name === "string" && data.site_name.trim().length > 0
-      ? data.site_name
-      : typeof data.account_name === "string" &&
-        data.account_name.trim().length > 0
-      ? data.account_name
-      : fallbackName) || fallbackName;
+    (islander.site_name && islander.site_name.trim()) ||
+    (islander.account_name && islander.account_name.trim()) ||
+    fallbackName;
 
   return {
     name,

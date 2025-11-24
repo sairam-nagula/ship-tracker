@@ -15,9 +15,13 @@ type Props = {
   error: string | null;
 };
 
+const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAP_ID;
+
 export function ShipMap({ ship, error }: Props) {
   const { isLoaded } = useJsApiLoader({
+    id: "google-map-script",
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
+    mapIds: MAP_ID ? [MAP_ID] : undefined,
   });
 
   const center =
@@ -25,21 +29,24 @@ export function ShipMap({ ship, error }: Props) {
       ? { lat: ship.lat, lng: ship.lng }
       : { lat: 0, lng: 0 };
 
-  const shipIcon = useMemo(() => {
-    if (!isLoaded || typeof window === "undefined" || !ship) return undefined;
+  const heading = ship?.courseDeg ?? 0;
 
+  // Built-in Google Maps triangle icon
+  const shipIcon = useMemo(() => {
+    if (typeof window === "undefined") return undefined;
     const g = (window as any).google?.maps;
     if (!g) return undefined;
 
-    const heading = ship.headingDeg ?? ship.courseDeg ?? 0;
-
     return {
-      url: "/shiptopview.png",
-      scaledSize: new g.Size(64, 64),
-      anchor: new g.Point(32, 32),
-      rotation: heading,
-    } as google.maps.Icon;
-  }, [isLoaded, ship]);
+      path: g.SymbolPath.FORWARD_CLOSED_ARROW,
+      scale: 3,              // size of triangle
+      strokeWeight: 1,
+      strokeColor: "#000000ff",
+      fillColor: "#000000ff",
+      fillOpacity: 0.5,
+      rotation: heading,     // <-- rotates based on ship heading
+    };
+  }, [heading, isLoaded]);
 
   return (
     <section className="map-pane">
@@ -48,40 +55,9 @@ export function ShipMap({ ship, error }: Props) {
           <GoogleMap
             mapContainerStyle={mapContainerStyle}
             center={center}
-            zoom={7}
+            zoom={8}
             options={{
-              styles: [
-                {
-                  featureType: "administrative",
-                  elementType: "labels",
-                  stylers: [{ visibility: "off" }],
-                },
-                {
-                  featureType: "poi",
-                  elementType: "labels",
-                  stylers: [{ visibility: "off" }],
-                },
-                {
-                  featureType: "road",
-                  elementType: "labels",
-                  stylers: [{ visibility: "off" }],
-                },
-                {
-                  featureType: "transit",
-                  elementType: "labels",
-                  stylers: [{ visibility: "off" }],
-                },
-                {
-                  featureType: "water",
-                  elementType: "labels",
-                  stylers: [{ visibility: "off" }],
-                },
-                {
-                  featureType: "landscape",
-                  elementType: "labels",
-                  stylers: [{ visibility: "off" }],
-                },
-              ],
+              mapId: MAP_ID,
             }}
           >
             <MarkerF position={center} icon={shipIcon} />

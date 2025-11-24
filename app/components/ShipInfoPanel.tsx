@@ -57,16 +57,9 @@ export function ShipInfoPanel({ ship, error }: Props) {
         </div>
 
         <div className="stat-box">
-          <div className="stat-label">Course</div>
+          <div className="stat-label">Direction</div>
           <div className="stat-value">
             {ship?.courseDeg != null ? `${ship.courseDeg.toFixed(0)}°` : "--"}
-          </div>
-        </div>
-
-        <div className="stat-box">
-          <div className="stat-label">MMSI</div>
-          <div className="stat-value">
-            {process.env.NEXT_PUBLIC_MARINESIA_MMSI ?? "–"}
           </div>
         </div>
       </div>
