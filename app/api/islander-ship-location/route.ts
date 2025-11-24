@@ -111,7 +111,7 @@ async function fetchShipFromMtnsat(): Promise<ShipLocation> {
   if (weatherKey) {
     try {
       const wRes = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${weatherKey}&units=metric`,
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${weatherKey}&units=imperial`,
         { cache: "no-store" },
       );
 

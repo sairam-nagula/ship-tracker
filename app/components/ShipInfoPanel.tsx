@@ -83,7 +83,7 @@ export function ShipInfoPanel({
           >
             {/* Temperature */}
             {ship?.weatherTempC != null && (
-              <span>{ship.weatherTempC.toFixed(1)}°C</span>
+              <span>{ship.weatherTempC.toFixed(1)}°F</span>
             )}
 
             {/* Short description like "clear sky" */}
