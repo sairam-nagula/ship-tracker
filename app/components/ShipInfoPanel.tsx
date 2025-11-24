@@ -94,7 +94,7 @@ export function ShipInfoPanel({
         setItineraryLoading(true);
         setItineraryError(null);
 
-        const res = await fetch(itineraryEndpoint, { cache: "no-store" });
+        const res = await fetch(itineraryEndpoint!, { cache: "no-store" });
         if (!res.ok) {
           throw new Error(`Itinerary API error: ${res.status}`);
         }
