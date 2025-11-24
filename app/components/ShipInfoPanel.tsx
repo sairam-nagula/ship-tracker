@@ -17,32 +17,35 @@ type Props = {
   itineraryEndpoint?: string;
 };
 
-// ---- helpers for itinerary parsing / formatting ----
-
-// convert "16:00" -> "4:00 PM"
-function to12Hour(time: string): string {
-  const [hStr, m] = time.split(":");
-  let h = Number(hStr);
-  const ampm = h >= 12 ? "PM" : "AM";
-  if (h === 0) h = 12;
-  else if (h > 12) h -= 12;
-  return `${h}:${m} ${ampm}`;
-}
-
-// Take a whole label like "23 Nov 07:00 - 16:30"
-// and convert *all* HH:MM substrings to 12-hour
-function formatDateLabelTo12h(label: string): string {
-  return label.replace(/\b(\d{1,2}:\d{2})\b/g, (match) => to12Hour(match));
-}
-
 type ParsedRange = {
   start: Date | null;
   end: Date | null;
 };
 
-// parse something like:
-//  - "21 Nov 16:00"
-//  - "23 Nov 07:00 - 16:30"
+// Convert HH:MM to 12-hour format
+function to12Hour(time: string): string {
+  const [hStr, m] = time.split(":");
+  let h = Number(hStr);
+  const ampm = h >= 12 ? "PM" : "AM";
+
+  if (h === 0) h = 12;
+  else if (h > 12) h -= 12;
+
+  return `${h}:${m} ${ampm}`;
+}
+
+// Convert knots to miles per hour
+function ktsToMph(kts: number): number {
+  return kts * 1.15078;
+}
+
+
+// Convert all HH:MM bits in the label to 12-hour format
+function formatDateLabelTo12h(label: string): string {
+  return label.replace(/\b(\d{1,2}:\d{2})\b/g, (match) => to12Hour(match));
+}
+
+// Handles "21 Nov 16:00" and "23 Nov 07:00 - 16:30"
 function parseDateRange(label: string, year: number): ParsedRange {
   const match = /^(\d{1,2})\s+([A-Za-z]{3})\s+(.+)$/.exec(label);
   if (!match) return { start: null, end: null };
@@ -50,20 +53,22 @@ function parseDateRange(label: string, year: number): ParsedRange {
   const [, dayStr, monthStr, timePart] = match;
   const base = `${dayStr} ${monthStr} ${year}`;
 
-  // timePart might be "16:00" or "07:00 - 16:30"
   if (timePart.includes("-")) {
     const [startStr, endStr] = timePart.split("-").map((s) => s.trim());
     const start = new Date(`${base} ${startStr}`);
     const end = new Date(`${base} ${endStr}`);
+
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
       return { start: null, end: null };
     }
+
     return { start, end };
-  } else {
-    const start = new Date(`${base} ${timePart.trim()}`);
-    if (Number.isNaN(start.getTime())) return { start: null, end: null };
-    return { start, end: null };
   }
+
+  const start = new Date(`${base} ${timePart.trim()}`);
+  if (Number.isNaN(start.getTime())) return { start: null, end: null };
+
+  return { start, end: null };
 }
 
 export function ShipInfoPanel({
@@ -79,13 +84,10 @@ export function ShipInfoPanel({
   const [itineraryLoading, setItineraryLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-  // Build OpenWeather icon URL if present
-  const weatherIconUrl =
-    ship?.weatherIcon != null
-      ? `https://openweathermap.org/img/wn/${ship.weatherIcon}@2x.png`
-      : null;
+  const weatherIconUrl = ship?.weatherIcon
+    ? `https://openweathermap.org/img/wn/${ship.weatherIcon}@2x.png`
+    : null;
 
-  // fetch itinerary
   useEffect(() => {
     if (!itineraryEndpoint) return;
 
@@ -100,12 +102,10 @@ export function ShipInfoPanel({
         }
 
         const json = (await res.json()) as { rows?: ItineraryRow[] };
-        const rows = json.rows ?? [];
-        setItinerary(rows);
+        setItinerary(json.rows ?? []);
       } catch (e: any) {
         console.error(e);
-        setItineraryError(e?.message ?? "Failed to load itinerary");
-        setItinerary(null);
+        setItineraryError(e?.message || "Failed to load itinerary");
       } finally {
         setItineraryLoading(false);
       }
@@ -114,44 +114,38 @@ export function ShipInfoPanel({
     loadItinerary();
   }, [itineraryEndpoint]);
 
-  // compute which row is "current" based on now
+  // Figure out which itinerary row we are currently in
   useEffect(() => {
     if (!itinerary || itinerary.length === 0) {
       setActiveIndex(null);
       return;
     }
 
-    const yearGuess = new Date().getFullYear();
-    const parsed = itinerary.map((row) =>
-      parseDateRange(row.date, yearGuess)
-    );
+    const year = new Date().getFullYear();
+    const parsed = itinerary.map((row) => parseDateRange(row.date, year));
     const now = new Date();
 
-    let found: number | null = null;
+    let current: number | null = null;
 
     for (let i = 0; i < parsed.length; i++) {
       const cur = parsed[i];
       if (!cur.start) continue;
 
-      // end of this leg = explicit end OR start of next leg OR null
       const next = parsed[i + 1];
       const legEnd = cur.end ?? next?.start ?? null;
 
       if (legEnd) {
         if (now >= cur.start && now < legEnd) {
-          found = i;
+          current = i;
           break;
         }
-      } else {
-        // last leg with only a start time – treat as active if we've passed it
-        if (now >= cur.start) {
-          found = i;
-          break;
-        }
+      } else if (now >= cur.start) {
+        current = i;
+        break;
       }
     }
 
-    setActiveIndex(found);
+    setActiveIndex(current);
   }, [itinerary]);
 
   return (
@@ -189,7 +183,7 @@ export function ShipInfoPanel({
         <div className="stat-box">
           <div className="stat-label">Speed</div>
           <div className="stat-value">
-            {ship?.speedKts != null ? `${ship.speedKts.toFixed(1)} kts` : "--"}
+            {ship?.speedKts != null ? `${ktsToMph(ship.speedKts).toFixed(1)} mph` : "--"}
           </div>
         </div>
 
@@ -200,7 +194,6 @@ export function ShipInfoPanel({
           </div>
         </div>
 
-        {/* Weather box */}
         <div className="stat-box">
           <div className="stat-label">Weather</div>
           {ship &&
@@ -222,7 +215,7 @@ export function ShipInfoPanel({
               {weatherIconUrl && (
                 <img
                   src={weatherIconUrl}
-                  alt={ship.weatherDescription ?? "Weather icon"}
+                  alt={ship.weatherDescription || "Weather icon"}
                   className="weather-icon"
                 />
               )}
@@ -235,7 +228,6 @@ export function ShipInfoPanel({
 
       {error && <p className="error-text">Error: {error}</p>}
 
-      {/* Current Itinerary section */}
       {itineraryEndpoint && (
         <section className="itinerary-card">
           <h3 className="itinerary-title">Current Itinerary</h3>

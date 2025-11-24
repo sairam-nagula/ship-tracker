@@ -4,7 +4,7 @@
 import { GoogleMap, MarkerF } from "@react-google-maps/api";
 import { useMemo } from "react";
 import type { ShipLocation } from "./useShipLocation";
-import { useGoogleMapsLoader } from "./useGoogleMapsLoader"; // ✅ NEW
+import { useGoogleMapsLoader } from "./useGoogleMapsLoader";
 
 
 const mapContainerStyle = {
@@ -37,12 +37,12 @@ export function ShipMap({ ship, error }: Props) {
 
     return {
       path: g.SymbolPath.FORWARD_CLOSED_ARROW,
-      scale: 3,              // size of triangle
+      scale: 4,              // size of triangle
       strokeWeight: 1,
       strokeColor: "#000000ff",
       fillColor: "#000000ff",
       fillOpacity: 0.5,
-      rotation: heading,     // <-- rotates based on ship heading
+      rotation: heading,     // rotates based on ship heading
     };
   }, [heading, isLoaded]);
 
