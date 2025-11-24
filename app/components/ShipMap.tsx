@@ -56,6 +56,13 @@ export function ShipMap({ ship, error }: Props) {
             zoom={8}
             options={{
               mapId: MAP_ID,
+              disableDefaultUI: true,
+                zoomControl: false,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: false,
+                keyboardShortcuts: false,
+                clickableIcons: false,
             }}
           >
             <MarkerF position={center} icon={shipIcon} />
