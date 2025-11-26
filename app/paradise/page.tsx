@@ -13,9 +13,9 @@ export default function ParadisePage() {
         ship={ship}
         error={error}
         logoSrc="/MVAS_Paradise Logo.png"
-        heroSrc="/paradise.jpg" // add this image to /public/paradise.jpg
+        heroSrc="/paradise.jpg" 
         shipLabel="MVAS Paradise"
-        itineraryEndpoint="/api/paradise-itinerary"
+        itineraryEndpoint="/api/Paradise/paradise-itinerary"
       />
       <ShipMap ship={ship} error={error} />
     </main>

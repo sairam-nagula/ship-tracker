@@ -10,13 +10,10 @@
 
   /* --- Ship Tracker Theme Variables (Margaritaville at Sea) --- */
   --bg-main: #0a406b;                  /* deep ocean blue */
-  --bg-main-gradient-top: #01acc0;     /* tropical teal */
-  --bg-main-gradient-bottom: #0a406b;  /* deep ocean */
-  --bg-panel: rgba(3, 30, 54, 0.96);   /* dark navy glass panel */
+  --bg-panel: rgba(3, 30, 54, 0.96);   /* dark navy glass panel */ 
   --border-soft: rgba(148, 163, 184, 0.35);
   --accent: #01acc0;                   /* Margaritaville teal */
-  --accent-soft: #f3e4c7;              /* warm sand highlight */
-  --text-main: #f9fafb;
+  --text-main: #4d0000; 
   --text-muted: #9ca3af;
   --text-soft: #e5e7eb;
 
@@ -24,59 +21,31 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Tailwind theme bridge */
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
 
 /* Prefer-dark baseline */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #020617;
-    --foreground: #ededed;
+    --background: var(--bg-main);
+    --foreground: var(--bg-main);
   }
 }
 
-/* ==========================================================================
-   2. GLOBAL BASE STYLES
-   ========================================================================== */
-
-body {
-  margin: 0;
-  background: radial-gradient(
-      circle at top left,
-      var(--bg-main-gradient-top) 0,
-      var(--bg-main-gradient-bottom) 55%,
-      #020617 100%
-    );
-  color: var(--text-main);
-  font-family: "Trebuchet MS", system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
-}
 
 /* ==========================================================================
    3. SHIP TRACKER LAYOUT (SINGLE-COLUMN, CENTERED)
    ========================================================================== */
 
 /* Root wrapper for the page */
-.page-root {
-  min-height: 100vh;
+.page-root {   
   display: flex;
   justify-content: center;
-  padding: 2rem;
-  background:  var(--bg-panel); /* site background behind the panel */
+  background:  var(--bg-panel); /* site background behind the panel */ 
 }
 
 /* Main content panel */
 .info-pane {
   width: 100%;
-  max-width: 1100px;
-  padding: 2rem 2.5rem;
   background: var(--bg-panel);
-  display: flex;
   flex-direction: column;
   border-radius: 1.25rem;
 }
@@ -85,14 +54,7 @@ body {
    3.1 MAP MODULE / CARD
    ========================================================================== */
 
-.map-card {
-  height: 320px;
-  border-radius: 1rem;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  margin-bottom: 1.5rem;
-  background: radial-gradient(circle at top, #033552, #020617);
-}
+
 
 /* Shown while the map is loading or erroring */
 .map-loading {
@@ -120,43 +82,24 @@ body {
   padding: 0;
 }
 
-.ship-name {
-  margin: 0;
-  font-size: 1.8rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-soft);
-}
 
-.subtitle {
-  margin-top: 0.4rem;
-  color: var(--text-muted);
-  font-size: 0.92rem;
-}
 
 /* ==========================================================================
    3.3 SHIP IMAGE CARD
    ========================================================================== */
 
 .ship-card {
-  border-radius: 1rem;
+  border-radius: .4rem;
   overflow: hidden;
   border: 1px solid var(--border-soft);
-  background: linear-gradient(
-    135deg,
-    rgba(1, 172, 192, 0.4),
-    rgba(10, 64, 107, 0.9)
-  );
+  background: rgba(3, 24, 49, 0.95);
   margin-bottom: 1.5rem;
-}
-
+} 
+ 
 .ship-image {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
+  object-fit: cover; 
   display: block;
-}
+} 
 
 /* ==========================================================================
    3.4 STATS GRID
@@ -165,16 +108,16 @@ body {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: .8rem;
 }
+
 
 .stat-box {
   background: rgba(3, 24, 49, 0.95);
-  border-radius: 0.9rem;
+  border-radius: .4rem;
   border: 1px solid var(--border-soft);
-  padding: 0.85rem 1rem;
-  display: flex;
+  padding: 0.45rem 1rem;
+  display: flex; 
   flex-direction: column;
   gap: 0.25rem;
 }
@@ -182,15 +125,97 @@ body {
 .stat-label {
   font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em; 
   color: var(--text-muted);
 }
 
 .stat-value {
   font-size: 1.1rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-soft);
 }
+
+
+.itinerary-card {
+  margin-top: .9rem;
+  padding: 1rem 1.1rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--border-soft);
+  background: rgba(3, 24, 49, 0.96);
+}
+
+.itinerary-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em; 
+  color: var(--text-muted);
+}
+
+.itinerary-loading,
+.itinerary-empty {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+/* Table look similar to screenshot but on dark theme */
+.itinerary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.itinerary-table th,
+.itinerary-table td {
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.itinerary-table thead th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 600;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.5);
+}
+
+.itinerary-td-date {
+  white-space: nowrap;
+  color: var(--text-soft);
+}
+
+.itinerary-td-port {
+  color: var(--text-soft);
+}
+
+.weather-value {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.weather-desc {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.weather-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.itinerary-row-active {
+  background: rgba(102, 153, 194, 0.18); 
+}
+
+.itinerary-row-active .itinerary-td-date,
+.itinerary-row-active .itinerary-td-port {
+  color: #ffffff;
+  font-weight: 600;
+}
+
 
 /* ==========================================================================
    3.5 ERROR + FOOTER
@@ -201,23 +226,7 @@ body {
   font-size: 0.9rem;
 }
 
-/* Bottom bar (sunset / extra info) */
-.footer-bar {
-  margin-top: auto;
-  padding: 0.9rem 1rem;
-  border-radius: 0.75rem;
-  border: 1px solid var(--border-soft);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  background: linear-gradient(
-    90deg,
-    rgba(243, 228, 199, 0.18),
-    rgba(3, 24, 49, 0.95)
-  );
-}
+
 
 .footer-value {
   color: var(--accent);
@@ -230,18 +239,18 @@ body {
 
 /* 70 / 30 split */
 .map-pane {
-  flex: 7;
-  min-width: 0;
-  transform: scale(0.75);
-  margin-top: -100px;
+  flex: 7; 
+  padding: 2rem;
+  transform: scale(0.85);
 
 
 }
 
 .info-pane {
   flex: 3;
-  transform: scale(0.75);
-  margin-top: -100px;
+  padding: 2rem;
+  transform: scale(0.85);
+
 }
 
 /* Map looks like a module/card, not full pane */
@@ -384,7 +393,7 @@ body {
 }
 
 /* ============================================================
-  COPYRIGHT FOOTER 
+   COPYRIGHT FOOTER — FIXED, WITHOUT CLIPPING
    ============================================================ */
 
 html,
@@ -392,108 +401,22 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
+  overflow-x: hidden;   
 }
 
-/* Wrapper that allows footer to stick to bottom without scroll */
 .app-shell {
-  min-height: 100vh;
+  min-height: 100vh;      
   display: flex;
   flex-direction: column;
 }
 
-/* Footer styling */
 .site-footer {
-  margin-top: auto;
+  margin-top: auto;       
   padding: 12px 0;
   text-align: center;
+  color: var(--text-muted);
   font-size: 0.9rem;
-  color: #e6f2ff;
-  background: #00407a; /* Navy */
+  background: rgba(3, 24, 49, 0.95);
   border-top: 1px solid rgba(255, 255, 255, 0.18);
-}
-
-
-/* ============================
-   Current Itinerary styles
-   ============================ */
-
-.itinerary-card {
-  margin-top: 1.5rem;
-  padding: 1rem 1.1rem;
-  border-radius: 0.9rem;
-  border: 1px solid var(--border-soft);
-  background: rgba(3, 24, 49, 0.96);
-}
-
-.itinerary-title {
-  margin: 0 0 0.75rem;
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--accent-soft);
-}
-
-.itinerary-loading,
-.itinerary-empty {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
-/* Table look similar to screenshot but on dark theme */
-.itinerary-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-.itinerary-table th,
-.itinerary-table td {
-  padding: 0.55rem 0.6rem;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.35);
-}
-
-.itinerary-table thead th {
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  font-weight: 600;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.5);
-}
-
-.itinerary-td-date {
-  white-space: nowrap;
-  color: var(--text-soft);
-}
-
-.itinerary-td-port {
-  color: var(--text-soft);
-}
-
-.weather-value {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.weather-desc {
-  font-size: 0.9rem;
-  opacity: 0.9;
-}
-
-.weather-icon {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-}
-
-/* Highlight for the currently active itinerary row */
-.itinerary-row-active {
-  background: rgba(102, 153, 194, 0.18); /* soft ocean highlight */
-}
-
-.itinerary-row-active .itinerary-td-date,
-.itinerary-row-active .itinerary-td-port {
-  color: #ffffff;
-  font-weight: 600;
+  flex-shrink: 0;
 }

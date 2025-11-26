@@ -30,8 +30,8 @@ export function useShipLocation(pollMs: number, ship: ShipKey) {
 
       const endpoint =
         ship === "paradise"
-          ? "/api/paradise-ship-location"
-          : "/api/islander-ship-location"; // ✅ FIXED
+          ? "api/Paradise/paradise-ship-location"
+          : "api/Islander/islander-ship-location"; 
 
       const res = await fetch(endpoint, { cache: "no-store" });
       if (!res.ok) {
