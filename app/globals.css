@@ -94,8 +94,6 @@ html, body {
   padding: 0;
 }
 
-
-
 /* ==========================================================================
    3.3 SHIP IMAGE CARD
    ========================================================================== */
@@ -111,6 +109,7 @@ html, body {
 .ship-image {
   object-fit: cover; 
   display: block;
+  width: 80%;
 } 
 
 /* ==========================================================================
@@ -157,16 +156,19 @@ html, body {
 }
 
 .itinerary-title {
-  font-size: 0.75rem;
+  font-size: 0.90rem;
   text-transform: uppercase;
   letter-spacing: 0.1em; 
   color: var(--text-muted);
 }
 
-.itinerary-loading,
-.itinerary-empty {
-  font-size: 0.9rem;
-  color: var(--text-muted);
+.itinerary-empty img{
+  width: 140px;
+  height: auto;
+  display: block;
+  margin: 1.5rem auto;
+  border: 3px solid var(--border-soft);
+  padding: 4px;
 }
 
 /* Table look similar to screenshot but on dark theme */

@@ -331,54 +331,21 @@ export function ShipInfoPanel({
       {/* Top-level error */}
       {error && <p className="error-text">Error: {error}</p>}
 
+
       {/* Itinerary block */}
       {itineraryEndpoint && (
         <section className="itinerary-card">
-          <h3 className="itinerary-title">Current Itinerary</h3>
-
-          {itineraryLoading && (
-            <p className="itinerary-loading">Loading current itinerary…</p>
-          )}
-
-          {itineraryError && (
-            <p className="error-text">Itinerary error: {itineraryError}</p>
-          )}
-
-          {itinerary && itinerary.length > 0 && (
-            <table className="itinerary-table">
-              <thead>
-                <tr>
-                  <th className="itinerary-th-date">Date / Time</th>
-                  <th className="itinerary-th-port">Port</th>
-                </tr>
-              </thead>
-              <tbody>
-                {itinerary.map((row, idx) => {
-                  const isActive = idx === activeIndex;
-                  return (
-                    <tr
-                      key={idx}
-                      className={isActive ? "itinerary-row-active" : ""}
-                    >
-                      <td className="itinerary-td-date">
-                        {formatDateLabelTo12h(row.date)}
-                      </td>
-                      <td className="itinerary-td-port">{row.port}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-
-          {itinerary &&
-            itinerary.length === 0 &&
-            !itineraryLoading &&
-            !itineraryError && (
-              <p className="itinerary-empty">No itinerary data available.</p>
-            )}
+          <h3 className="itinerary-title">Scan Here for Cruise Information</h3>
+          <p className="itinerary-empty">
+            <img
+              src="/Islander.png"
+              alt="Islander"
+            />
+          </p>
         </section>
       )}
+
     </section>
+    
   );
 }
