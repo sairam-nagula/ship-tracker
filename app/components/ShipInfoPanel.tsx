@@ -311,7 +311,7 @@ export function ShipInfoPanel({
                     .join(" ")}
                 </span>
               )}
-              {/* {weatherIconUrl && (
+              {weatherIconUrl && (
                 <img
                   src={weatherIconUrl}
                   alt={description || "Weather icon"}
@@ -320,7 +320,7 @@ export function ShipInfoPanel({
               )}
               {weatherError && (
                 <span className="weather-error">({weatherError})</span>
-              )} */}
+              )}
             </div>
           ) : (
             <div className="stat-value">--</div>
