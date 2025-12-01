@@ -5,7 +5,7 @@
    ========================================================================== */
 
 :root {
-  --background: #ffffff;
+  --background: #0a406b;
   --foreground: #171717;
 
   /* --- Ship Tracker Theme Variables (Margaritaville at Sea) --- */
@@ -30,6 +30,13 @@
   }
 }
 
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden; /* Prevent ANY scrolling */
+}
 
 /* ==========================================================================
    3. SHIP TRACKER LAYOUT (SINGLE-COLUMN, CENTERED)
@@ -37,17 +44,22 @@
 
 /* Root wrapper for the page */
 .page-root {   
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 3fr 4fr;
+  gap: 1.75rem;
+  height: 100vh;
+  padding: 1rem;
   background:  var(--bg-panel); /* site background behind the panel */ 
 }
 
 /* Main content panel */
 .info-pane {
-  width: 100%;
+  height: 100%;
   background: var(--bg-panel);
   flex-direction: column;
   border-radius: 1.25rem;
+  flex: 1;
+  padding: 2rem;
 }
 
 /* ==========================================================================
@@ -107,7 +119,7 @@
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: .8rem;
 }
 
@@ -130,7 +142,7 @@
 }
 
 .stat-value {
-  font-size: 1.1rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-soft);
 }
@@ -196,7 +208,6 @@
 }
 
 .weather-desc {
-  font-size: 0.9rem;
   opacity: 0.9;
 }
 
@@ -239,24 +250,13 @@
 
 /* 70 / 30 split */
 .map-pane {
-  flex: 7; 
-  padding: 2rem;
-  transform: scale(0.85);
-
-
-}
-
-.info-pane {
-  flex: 3;
-  padding: 2rem;
-  transform: scale(0.85);
-
+  flex: 1; 
 }
 
 /* Map looks like a module/card, not full pane */
 .map-card {
   height: 100%;
-  border-radius: 16px;
+  border-radius: 1.25rem;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: #020617;
