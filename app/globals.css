@@ -111,6 +111,7 @@ html, body {
 .ship-image {
   object-fit: cover; 
   display: block;
+  border-radius: .4rem;
   
   width: 100%;
   height: auto;
