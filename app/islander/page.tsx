@@ -5,7 +5,7 @@ import { ShipMap } from "../components/ShipMap";
 import { useShipLocation } from "../components/useShipLocation";
 
 export default function IslanderPage() {
-  const { ship, error } = useShipLocation(60_000, "islander");
+  const { ship, track, error } = useShipLocation(30_000, "islander");
 
   return (
     <main className="page-root">
@@ -17,7 +17,7 @@ export default function IslanderPage() {
         shipLabel="MVAS Islander"
         itineraryEndpoint="/api/Islander/islander-itinerary"
       />
-      <ShipMap ship={ship} error={error} />
+      <ShipMap ship={ship} track={track} error={error} />
     </main>
   );
 }

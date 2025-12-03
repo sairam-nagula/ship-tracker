@@ -5,7 +5,7 @@ import { ShipMap } from "../components/ShipMap";
 import { useShipLocation } from "../components/useShipLocation";
 
 export default function ParadisePage() {
-  const { ship, error } = useShipLocation(60_000, "paradise");
+  const { ship, error } = useShipLocation(30_000, "paradise");
 
   return (
     <main className="page-root">

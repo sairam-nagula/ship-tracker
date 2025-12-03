@@ -247,24 +247,42 @@ export function ShipInfoPanel({
         <img src={logoSrc} alt={`${shipLabel} logo`} className="ship-logo" />
       </div>
 
-      <div className="ship-card">
-        <img src={heroSrc} alt={shipLabel} className="ship-image" />
+      {/* Ship image + Cruise News side-by-side */}
+      <div className="hero-row">
+        <div className="ship-card">
+          <img src={heroSrc} alt={shipLabel} className="ship-image" />
+        </div>
+
+        {itineraryEndpoint && (
+          <section className="itinerary-card">
+            <h3 className="itinerary-title">Cruise News</h3>
+            <p className="itinerary-empty">
+              <img src="/Islander.png" alt="Islander" />
+            </p>
+          </section>
+        )}
       </div>
 
       <div className="stats-grid">
-        {/* Latitude */}
+        {/* Latitude & Longitude */}
         <div className="stat-box">
           <div className="stat-label">Latitude</div>
           <div className="stat-value">
-            {ship ? `${ship.lat.toFixed(4)}°` : "--"}
+            {ship ? `${ship.lat.toFixed(4)}°, ${ship.lng.toFixed(4)}°` : "--"}
           </div>
         </div>
 
-        {/* Longitude */}
+        {/* Ship Time (EST) */}
         <div className="stat-box">
-          <div className="stat-label">Longitude</div>
+          <div className="stat-label">Ship Time</div>
           <div className="stat-value">
-            {ship ? `${ship.lng.toFixed(4)}°` : "--"}
+            {new Date().toLocaleTimeString("en-US", {
+              timeZone: "America/New_York",
+              hour: "numeric",
+              minute: "numeric",
+              hour12: true,
+            })}{" "}
+            EST
           </div>
         </div>
 
@@ -330,22 +348,6 @@ export function ShipInfoPanel({
 
       {/* Top-level error */}
       {error && <p className="error-text">Error: {error}</p>}
-
-
-      {/* Itinerary block */}
-      {itineraryEndpoint && (
-        <section className="itinerary-card">
-          <h3 className="itinerary-title">Scan Here for Cruise Information</h3>
-          <p className="itinerary-empty">
-            <img
-              src="/Islander.png"
-              alt="Islander"
-            />
-          </p>
-        </section>
-      )}
-
     </section>
-    
   );
 }
