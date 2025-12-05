@@ -15,6 +15,7 @@ type Props = {
   heroSrc: string;
   shipLabel: string;
   itineraryEndpoint?: string;
+  dailyHighlightsEndpoint?: string; // NEW
 };
 
 type ParsedRange = {
@@ -26,6 +27,14 @@ type WeatherState = {
   weatherTempC: number | null;
   weatherDescription: string | null;
   weatherIcon: string | null;
+};
+
+type HighlightItem = {
+  section: string;
+  time: string;
+  title: string;
+  location: string;
+  description: string;
 };
 
 // Map ship label -> correct weather API endpoint
@@ -96,6 +105,19 @@ function parseDateRange(label: string, year: number): ParsedRange {
   return { start, end: null };
 }
 
+// Which section to show based on current time
+function getCurrentSectionByTime(now: Date = new Date()): string {
+  const hour = now.getHours(); // 0–23
+
+  if (hour < 12) {
+    return "SUNRISE SPOTLIGHTS";
+  } else if (hour < 18) {
+    return "AFTERNOON ADVENTURES";
+  } else {
+    return "MARGARITAVILLE AFTER DARK";
+  }
+}
+
 export function ShipInfoPanel({
   ship,
   error,
@@ -103,6 +125,7 @@ export function ShipInfoPanel({
   heroSrc,
   shipLabel,
   itineraryEndpoint,
+  dailyHighlightsEndpoint,
 }: Props) {
   const [itinerary, setItinerary] = useState<ItineraryRow[] | null>(null);
   const [itineraryError, setItineraryError] = useState<string | null>(null);
@@ -111,6 +134,10 @@ export function ShipInfoPanel({
 
   const [weather, setWeather] = useState<WeatherState | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
+
+  const [highlights, setHighlights] = useState<HighlightItem[]>([]);
+  const [highlightsError, setHighlightsError] = useState<string | null>(null);
+  const [highlightsLoading, setHighlightsLoading] = useState(false);
 
   // Weather endpoint (determined automatically from label)
   const weatherEndpoint = getWeatherEndpoint(shipLabel);
@@ -188,6 +215,36 @@ export function ShipInfoPanel({
     loadWeather();
   }, [weatherEndpoint]);
 
+  // Load daily highlights
+  useEffect(() => {
+    if (!dailyHighlightsEndpoint) return;
+
+    async function loadHighlights() {
+      try {
+        setHighlightsLoading(true);
+        setHighlightsError(null);
+
+        const res = await fetch(dailyHighlightsEndpoint!, {
+          cache: "no-store",
+        });
+        if (!res.ok) {
+          throw new Error(`Highlights API error: ${res.status}`);
+        }
+
+        const json = await res.json();
+        setHighlights(json.highlights ?? []);
+      } catch (e: any) {
+        console.error(e);
+        setHighlights([]);
+        setHighlightsError(e?.message || "Failed to load daily highlights");
+      } finally {
+        setHighlightsLoading(false);
+      }
+    }
+
+    loadHighlights();
+  }, [dailyHighlightsEndpoint]);
+
   // Determine which itinerary row is active right now
   useEffect(() => {
     if (!itinerary || itinerary.length === 0) {
@@ -240,6 +297,11 @@ export function ShipInfoPanel({
   const tempF = weather?.weatherTempC ?? ship?.weatherTempC ?? null;
   const description =
     weather?.weatherDescription ?? ship?.weatherDescription ?? null;
+
+  const currentSection = getCurrentSectionByTime();
+  const sectionHighlights = highlights.filter(
+    (h) => h.section === currentSection
+  );
 
   return (
     <section className="info-pane">
@@ -345,6 +407,57 @@ export function ShipInfoPanel({
           )}
         </div>
       </div>
+
+      {/* Daily Highlights */}
+      {dailyHighlightsEndpoint && (
+        <div className="daily-highlights">
+          <h3 className="daily-highlights-title">Daily Highlights</h3>
+
+          {highlightsLoading && (
+            <p className="loading-text">Loading highlights…</p>
+          )}
+
+          {highlightsError && (
+            <p className="error-text">Error: {highlightsError}</p>
+          )}
+
+          {!highlightsLoading &&
+            !highlightsError &&
+            sectionHighlights.length > 0 && (
+              <div className="daily-highlights-table">
+                <div className="daily-highlights-section-label">
+                  {currentSection
+                    .toLowerCase()
+                    .replace(/\b\w/g, (c) => c.toUpperCase())}
+                </div>
+                <table>
+                  <tbody>
+                    {sectionHighlights.map((item, idx) => (
+                      <tr key={idx} className="highlight-row">
+                        <td className="highlight-time">{item.time}</td>
+                        <td className="highlight-main">
+                          <div className="highlight-title">{item.title}</div>
+                          <div className="highlight-location">
+                            {item.location}
+                          </div>
+                          <div className="highlight-description">
+                            {item.description}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+          {!highlightsLoading &&
+            !highlightsError &&
+            sectionHighlights.length === 0 && (
+              <p className="empty-text">No highlights available.</p>
+            )}
+        </div>
+      )}
 
       {/* Top-level error */}
       {error && <p className="error-text">Error: {error}</p>}

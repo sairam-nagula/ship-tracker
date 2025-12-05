@@ -16,6 +16,7 @@ export default function IslanderPage() {
         heroSrc="/islander.jpg"
         shipLabel="MVAS Islander"
         itineraryEndpoint="/api/Islander/islander-itinerary"
+        dailyHighlightsEndpoint="/api/Islander/daily-highlights"
       />
       <ShipMap ship={ship} track={track} error={error} />
     </main>
