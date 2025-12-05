@@ -299,9 +299,16 @@ export function ShipInfoPanel({
     weather?.weatherDescription ?? ship?.weatherDescription ?? null;
 
   const currentSection = getCurrentSectionByTime();
+
   const sectionHighlights = highlights.filter(
-    (h) => h.section === currentSection
+    (h) =>
+      h.section &&
+      h.section.toUpperCase().trim() === currentSection.toUpperCase().trim()
   );
+
+  console.log("All highlight sections:", highlights.map((h) => h.section));
+  console.log("Current section:", currentSection, "matches:", sectionHighlights.length);
+
 
   return (
     <section className="info-pane">

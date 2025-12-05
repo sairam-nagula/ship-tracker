@@ -443,3 +443,146 @@ body {
 }
 
 
+/* ===========================
+   Daily Highlights Panel
+   =========================== */
+
+.daily-highlights {
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: rgba(3, 30, 54, 0.96); /* same as other panels */
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-soft, rgba(148, 163, 184, 0.35));
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+  color: var(--text-soft, #e5e7eb);
+}
+
+.daily-highlights-title {
+  font-size: 0.95rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-muted, #9ca3af);
+  margin-bottom: 0.5rem;
+}
+
+/* "Sunrise Spotlights" label */
+.daily-highlights-section-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--accent, #01acc0);
+  padding: 0.4rem 0;
+  border-top: 1px solid rgba(148, 163, 184, 0.35);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+  margin-bottom: 0.6rem;
+}
+
+/* Table wrapper */
+.daily-highlights-table {
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+/* Basic table reset */
+.daily-highlights-table table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+/* Each activity row */
+.highlight-row {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.highlight-row:last-child {
+  border-bottom: none;
+}
+
+/* Time column */
+.highlight-time {
+  width: 80px;
+  white-space: nowrap;
+  vertical-align: top;
+  padding: 0.55rem 0.6rem 0.55rem 0;
+  font-weight: 600;
+  color: var(--text-soft, #e5e7eb);
+}
+
+/* Content column */
+.highlight-main {
+  padding: 0.55rem 0 0.55rem 0.6rem;
+}
+
+/* Title (e.g. "MORNING MINDBENDER TRIVIA") */
+.highlight-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.15rem;
+  color: var(--text-soft, #e5e7eb);
+}
+
+/* Location line (deck / venue) */
+.highlight-location {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted, #9ca3af);
+  margin-bottom: 0.2rem;
+}
+
+/* Description paragraph */
+.highlight-description {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-soft, #e5e7eb);
+}
+
+/* Status texts */
+.loading-text,
+.empty-text,
+.error-text {
+  font-size: 0.8rem;
+  margin-top: 0.4rem;
+}
+
+.loading-text,
+.empty-text {
+  color: var(--text-muted, #9ca3af);
+}
+
+/* Reuse your existing .error-text color if you have one */
+.error-text {
+  color: #fca5a5;
+}
+
+/* ===========================
+   Responsive tweaks
+   =========================== */
+
+@media (max-width: 768px) {
+  .daily-highlights {
+    padding: 1rem 1.1rem;
+  }
+
+  .highlight-time {
+    width: 70px;
+    font-size: 0.78rem;
+  }
+
+  .highlight-main {
+    padding-left: 0.4rem;
+  }
+
+  .highlight-title {
+    font-size: 0.82rem;
+  }
+
+  .highlight-location,
+  .highlight-description {
+    font-size: 0.74rem;
+  }
+}
