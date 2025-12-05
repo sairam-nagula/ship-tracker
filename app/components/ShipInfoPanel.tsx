@@ -266,7 +266,7 @@ export function ShipInfoPanel({
       <div className="stats-grid">
         {/* Latitude & Longitude */}
         <div className="stat-box">
-          <div className="stat-label">Latitude, Longitude</div>
+          <div className="stat-label">Coordinates</div>
           <div className="stat-value">
             {ship ? `${ship.lat.toFixed(4)}°, ${ship.lng.toFixed(4)}°` : "--"}
           </div>

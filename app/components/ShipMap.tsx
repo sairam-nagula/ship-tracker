@@ -94,8 +94,8 @@ export function ShipMap({ ship, error, track = [] }: Props) {
   useEffect(() => {
     if (!isLoaded) return;
 
-    const step = 0.15;
-    const frameMs = 150;
+    const step = 0.35;
+    const frameMs = 80;
 
     const id = setInterval(() => {
       setZoom((current) => {
