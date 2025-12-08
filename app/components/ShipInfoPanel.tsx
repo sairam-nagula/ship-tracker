@@ -14,7 +14,8 @@ type Props = {
   logoSrc: string;
   heroSrc: string;
   shipLabel: string;
-  itineraryEndpoint?: string;
+  itineraryEndpoint: string;
+  cruisenewsEndpoint: string;
 };
 
 type ParsedRange = {
@@ -26,6 +27,11 @@ type WeatherState = {
   weatherTempC: number | null;
   weatherDescription: string | null;
   weatherIcon: string | null;
+};
+
+type Quote = {
+  text: string;
+  author?: string;
 };
 
 // Map ship label -> correct weather API endpoint
@@ -103,6 +109,7 @@ export function ShipInfoPanel({
   heroSrc,
   shipLabel,
   itineraryEndpoint,
+  cruisenewsEndpoint,
 }: Props) {
   const [itinerary, setItinerary] = useState<ItineraryRow[] | null>(null);
   const [itineraryError, setItineraryError] = useState<string | null>(null);
@@ -111,6 +118,9 @@ export function ShipInfoPanel({
 
   const [weather, setWeather] = useState<WeatherState | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
+
+  const [quote, setQuote] = useState<Quote | null>(null);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
 
   // Weather endpoint (determined automatically from label)
   const weatherEndpoint = getWeatherEndpoint(shipLabel);
@@ -132,7 +142,7 @@ export function ShipInfoPanel({
         setItineraryLoading(true);
         setItineraryError(null);
 
-        const res = await fetch(itineraryEndpoint!, { cache: "no-store" });
+        const res = await fetch(itineraryEndpoint, { cache: "no-store" });
         if (!res.ok) {
           throw new Error(`Itinerary API error: ${res.status}`);
         }
@@ -162,7 +172,7 @@ export function ShipInfoPanel({
       try {
         setWeatherError(null);
 
-        const res = await fetch(weatherEndpoint!, { cache: "no-store" });
+        const res = await fetch(weatherEndpoint, { cache: "no-store" });
         if (!res.ok) {
           throw new Error(`Weather API error: ${res.status}`);
         }
@@ -187,6 +197,28 @@ export function ShipInfoPanel({
 
     loadWeather();
   }, [weatherEndpoint]);
+
+  // Load Quote of the Day
+  useEffect(() => {
+    async function loadQuote() {
+      try {
+        setQuoteError(null);
+        const res = await fetch("/api/quotes", { cache: "no-store" });
+        if (!res.ok) {
+          throw new Error(`Quote API error: ${res.status}`);
+        }
+
+        const json = await res.json();
+        setQuote(json.quote ?? null);
+      } catch (e: any) {
+        console.error("Quote fetch error:", e);
+        setQuote(null);
+        setQuoteError(e?.message || "Failed to load quote");
+      }
+    }
+
+    loadQuote();
+  }, []);
 
   // Determine which itinerary row is active right now
   useEffect(() => {
@@ -257,7 +289,7 @@ export function ShipInfoPanel({
           <section className="itinerary-card">
             <h3 className="itinerary-title">Cruise News</h3>
             <p className="itinerary-empty">
-              <img src="/Islander.png" alt="Islander" />
+              <img src={cruisenewsEndpoint} alt="Cruise News QR" />
             </p>
           </section>
         )}
@@ -345,6 +377,22 @@ export function ShipInfoPanel({
           )}
         </div>
       </div>
+
+      {/* Quote of the Day */}
+      {quote && (
+        <div className="quote-card">
+          <div className="quote-title">Quote of the Day</div>
+          <p className="quote-text">“{quote.text}”</p>
+          {quote.author && (
+            <p className="quote-author">— {quote.author}</p>
+          )}
+        </div>
+      )}
+
+      {/* (Optional) quote error – keep subtle or omit entirely */}
+      {!quote && quoteError && (
+        <p className="quote-error">Unable to load today’s quote.</p>
+      )}
 
       {/* Top-level error */}
       {error && <p className="error-text">Error: {error}</p>}
