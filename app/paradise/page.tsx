@@ -16,6 +16,7 @@ export default function ParadisePage() {
         heroSrc="/paradise.jpg" 
         shipLabel="MVAS Paradise"
         itineraryEndpoint="/api/Paradise/paradise-itinerary"
+        cruisenewsEndpoint="/Paradise-cruisenews.png"
       />
       <ShipMap ship={ship} error={error} />
     </main>
