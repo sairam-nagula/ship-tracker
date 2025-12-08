@@ -64,6 +64,8 @@ html, body {
   border-radius: 1.25rem;
   flex: 1;
   padding: 2rem;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+
 }
 
 /* ==========================================================================
@@ -96,6 +98,7 @@ html, body {
   display: block;
   margin: 0 auto;
   padding: 0;
+  
 }
 
 /* ==========================================================================
@@ -107,6 +110,8 @@ html, body {
   border: 1px solid var(--border-soft);
   background: rgba(3, 24, 49, 0.95);
   width: 60%; 
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+
 } 
 
 .itinerary-card {
@@ -115,6 +120,8 @@ html, body {
   border-radius: 0.4rem;
   border: 1px solid var(--border-soft);
   background: rgba(3, 24, 49, 0.96);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+
 }
  
 .ship-image {
@@ -144,6 +151,8 @@ html, body {
   display: flex; 
   flex-direction: column;
   gap: 0.25rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+
 }
 
 
@@ -151,7 +160,7 @@ html, body {
   width: 40px;
   height: 40px; 
   margin-top: -22px; 
-  margin-left: 40px;
+  margin-left: 10px;
   object-fit: contain;
 }
 
@@ -265,6 +274,7 @@ html, body {
 /* 70 / 30 split */
 .map-pane {
   flex: 1; 
+
 }
 
 /* Map looks like a module/card, not full pane */
@@ -272,6 +282,7 @@ html, body {
   height: 100%;
   border-radius: 1.25rem;
   overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: #020617;
 }
@@ -443,3 +454,41 @@ body {
 }
 
 
+/* Quote of the Day card */
+.quote-card {
+  margin-top: 1.75rem;
+  padding: 1.1rem 1.35rem;
+  border-radius: 0.9rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-soft);
+  color: var(--text-soft);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+.quote-title {
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 0.35rem;
+}
+
+.quote-text {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0.1rem 0 0.35rem;
+}
+
+.quote-author {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Optional subtle error if quote fails to load */
+.quote-error {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: #fca5a5;
+}

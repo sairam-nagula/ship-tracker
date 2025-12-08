@@ -28,9 +28,9 @@ export function ShipMap({ ship, error, track = [] }: Props) {
   const { isLoaded } = useGoogleMapsLoader();
 
   const [zoom, setZoom] = useState(7);
-  const [targetZoom, setTargetZoom] = useState(7);
 
-  const center =
+  // Raw ship center from live data
+  const shipCenter =
     ship && Number.isFinite(ship.lat) && Number.isFinite(ship.lng)
       ? { lat: ship.lat, lng: ship.lng }
       : { lat: 0, lng: 0 };
@@ -49,8 +49,9 @@ export function ShipMap({ ship, error, track = [] }: Props) {
       strokeWeight: 1,
       strokeColor: "#000000ff",
       fillColor: "#000000ff",
-      fillOpacity: 0.5,
+      fillOpacity: 1,
       rotation: heading,
+      anchor: new g.Point(-.8, 2.5)
     };
   }, [heading, isLoaded]);
 
@@ -63,54 +64,90 @@ export function ShipMap({ ship, error, track = [] }: Props) {
     [track]
   );
 
-  // Zoom cycle: zoom in 5 sec, then zoom out 20 sec
+  // Compute marker position:
+  // - If we have a path and the last point is not (basically) equal to shipCenter,
+  //   use the last path point to avoid a gap.
+  // - Otherwise, use shipCenter.
+  const markerPosition = useMemo(() => {
+    if (!path.length) return shipCenter;
+
+    const last = path[path.length - 1];
+    const epsilon = 0.0001; // small threshold for "same place"
+
+    const isSameAsShipCenter =
+      Math.abs(last.lat - shipCenter.lat) < epsilon &&
+      Math.abs(last.lng - shipCenter.lng) < epsilon;
+
+    return isSameAsShipCenter ? shipCenter : last;
+  }, [path, shipCenter.lat, shipCenter.lng]);
+
+  // Use markerPosition as the map center so the camera follows what the guest sees
+  const center = markerPosition;
+
+  // Zoom in → hold → zoom out → hold cycle
   useEffect(() => {
     if (!isLoaded || !ship) return;
 
-    let zoomInTimeout: NodeJS.Timeout;
-    let zoomOutTimeout: NodeJS.Timeout;
+    const minZoom = 7;
+    const maxZoom = 11;    // how close you want to get
+    const step = 0.25;     // how fast you zoom (bigger = faster)
+    const frameMs = 80;    // how often we update
 
-    const startZoomCycle = () => {
-      setTargetZoom(10);
+    const holdInMs = 4000;   // stay zoomed in for 4 seconds
+    const holdOutMs = 10000; // stay zoomed out for 10 seconds
 
-      zoomInTimeout = setTimeout(() => {
-        setTargetZoom(7);
+    type Phase = "zoomIn" | "holdIn" | "zoomOut" | "holdOut";
 
-        zoomOutTimeout = setTimeout(() => {
-          startZoomCycle();
-        }, 20_000);
-      }, 5_000);
-    };
+    let phase: Phase = "zoomIn";
+    let currentZoom = minZoom;
+    let holdUntil = 0;
 
-    startZoomCycle();
-
-    return () => {
-      clearTimeout(zoomInTimeout);
-      clearTimeout(zoomOutTimeout);
-    };
-  }, [isLoaded, ship]);
-
-  // Smooth zoom interpolation toward targetZoom
-  useEffect(() => {
-    if (!isLoaded) return;
-
-    const step = 0.35;
-    const frameMs = 80;
+    setZoom(currentZoom);
 
     const id = setInterval(() => {
-      setZoom((current) => {
-        const diff = targetZoom - current;
-        if (Math.abs(diff) <= step) {
-          clearInterval(id);
-          return targetZoom;
+      const now = Date.now();
+
+      switch (phase) {
+        case "zoomIn": {
+          currentZoom = Math.min(maxZoom, currentZoom + step);
+          setZoom(currentZoom);
+
+          if (currentZoom >= maxZoom) {
+            phase = "holdIn";
+            holdUntil = now + holdInMs;
+          }
+          break;
         }
-        const direction = diff > 0 ? 1 : -1;
-        return current + direction * step;
-      });
+
+        case "holdIn": {
+          if (now >= holdUntil) {
+            phase = "zoomOut";
+          }
+          break;
+        }
+
+        case "zoomOut": {
+          currentZoom = Math.max(minZoom, currentZoom - step);
+          setZoom(currentZoom);
+
+          if (currentZoom <= minZoom) {
+            phase = "holdOut";
+            holdUntil = now + holdOutMs;
+          }
+          break;
+        }
+
+        case "holdOut": {
+          if (now >= holdUntil) {
+            phase = "zoomIn";
+          }
+          break;
+        }
+      }
     }, frameMs);
 
     return () => clearInterval(id);
-  }, [targetZoom, isLoaded]);
+  }, [isLoaded, ship]);
 
   return (
     <section className="map-pane">
@@ -137,14 +174,14 @@ export function ShipMap({ ship, error, track = [] }: Props) {
                 options={{
                   geodesic: true,
                   strokeOpacity: 0.7,
-                  strokeWeight: 2,
-                  strokeColor: "#000000ff", // your teal
+                  strokeWeight: 1.5,
+                  strokeColor: "#000000ff",
                 }}
               />
             )}
 
-            {/* Ship Marker */}
-            <MarkerF position={center} icon={shipIcon} />
+            {/* Ship Marker snapped to end of track when needed */}
+            <MarkerF position={markerPosition} icon={shipIcon} />
           </GoogleMap>
         ) : (
           <div className="map-loading">
