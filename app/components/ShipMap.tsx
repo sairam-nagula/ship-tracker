@@ -5,6 +5,7 @@ import { useMemo, useState, useEffect } from "react";
 import type { ShipLocation } from "./useShipLocation";
 import { useGoogleMapsLoader } from "./useGoogleMapsLoader";
 
+
 const mapContainerStyle = {
   width: "100%",
   height: "100%",
@@ -51,7 +52,7 @@ export function ShipMap({ ship, error, track = [] }: Props) {
       fillColor: "#000000ff",
       fillOpacity: 1,
       rotation: heading,
-      anchor: new g.Point(-.8, 2.5)
+      anchor: new g.Point(-0.8, 2.5),
     };
   }, [heading, isLoaded]);
 
@@ -84,16 +85,46 @@ export function ShipMap({ ship, error, track = [] }: Props) {
   // Use markerPosition as the map center so the camera follows what the guest sees
   const center = markerPosition;
 
+  // Build faded segments: older = lighter, newer = darker
+  const fadedSegments = useMemo(() => {
+    if (path.length < 2) return [];
+
+    const maxSegments = 10;
+    const segmentsCount = Math.min(maxSegments, path.length - 1);
+    const segments: { path: { lat: number; lng: number }[]; opacity: number }[] =
+      [];
+
+    const oldestOpacity = 0.15;
+    const newestOpacity = 0.9;
+
+    for (let s = 0; s < segmentsCount; s++) {
+      const startIndex = Math.floor((s * (path.length - 1)) / segmentsCount);
+      const endIndex = Math.floor(((s + 1) * (path.length - 1)) / segmentsCount) + 1;
+
+      const segmentPath = path.slice(startIndex, endIndex);
+      if (segmentPath.length < 2) continue;
+
+      const t =
+        segmentsCount === 1 ? 1 : s / (segmentsCount - 1); // 0 = oldest, 1 = newest
+      const opacity =
+        oldestOpacity + (newestOpacity - oldestOpacity) * t;
+
+      segments.push({ path: segmentPath, opacity });
+    }
+
+    return segments;
+  }, [path]);
+
   // Zoom in → hold → zoom out → hold cycle
   useEffect(() => {
     if (!isLoaded || !ship) return;
 
     const minZoom = 7;
-    const maxZoom = 11;    // how close you want to get
-    const step = 0.25;     // how fast you zoom (bigger = faster)
-    const frameMs = 80;    // how often we update
+    const maxZoom = 11; // how close you want to get
+    const step = 0.25; // how fast you zoom (bigger = faster)
+    const frameMs = 80; // how often we update
 
-    const holdInMs = 4000;   // stay zoomed in for 4 seconds
+    const holdInMs = 4000; // stay zoomed in for 4 seconds
     const holdOutMs = 10000; // stay zoomed out for 10 seconds
 
     type Phase = "zoomIn" | "holdIn" | "zoomOut" | "holdOut";
@@ -168,17 +199,23 @@ export function ShipMap({ ship, error, track = [] }: Props) {
               clickableIcons: false,
             }}
           >
-            {path.length > 1 && (
+            {/* Fading track: older segments lighter, newer darker */}
+            {fadedSegments.map((segment, idx) => (
               <PolylineF
-                path={path}
+                key={idx}
+                path={segment.path}
                 options={{
-                  geodesic: true,
-                  strokeOpacity: 0.7,
+                  geodesic: false,             
+                  strokeOpacity: segment.opacity,
                   strokeWeight: 1.5,
-                  strokeColor: "#000000ff",
-                }}
+                  strokeColor: "#000000",
+                  strokeLinecap: "round",      
+                  strokeLinejoin: "round",    
+                } as google.maps.PolylineOptions
+                }
               />
-            )}
+
+            ))}
 
             {/* Ship Marker snapped to end of track when needed */}
             <MarkerF position={markerPosition} icon={shipIcon} />

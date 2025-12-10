@@ -3,9 +3,11 @@
 import { ShipInfoPanel } from "../components/ShipInfoPanel";
 import { ShipMap } from "../components/ShipMap";
 import { useShipLocation } from "../components/useShipLocation";
+import { useShipTrack } from "../components/useShipTrack";
 
 export default function IslanderPage() {
-  const { ship, track, error } = useShipLocation(30_000, "islander");
+  const { ship, error } = useShipLocation(30_000, "islander");
+  const { track = [] } = useShipTrack("islander");
 
   return (
     <main className="page-root">
