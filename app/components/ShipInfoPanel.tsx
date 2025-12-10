@@ -172,7 +172,7 @@ export function ShipInfoPanel({
       try {
         setWeatherError(null);
 
-        const res = await fetch(weatherEndpoint, { cache: "no-store" });
+        const res = await fetch(weatherEndpoint!, { cache: "no-store" });
         if (!res.ok) {
           throw new Error(`Weather API error: ${res.status}`);
         }
