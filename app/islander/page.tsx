@@ -15,7 +15,7 @@ export default function IslanderPage() {
         ship={ship}
         error={error}
         logoSrc="/MVAS_Islander Logo.png"
-        heroSrc="/islander.jpg"
+        heroSrc="/islander.png"
         shipLabel="MVAS Islander"
         itineraryEndpoint="/api/Islander/islander-itinerary"
         cruisenewsEndpoint="/Islander-cruisenews.png"

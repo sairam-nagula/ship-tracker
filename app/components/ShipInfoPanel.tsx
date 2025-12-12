@@ -273,129 +273,152 @@ export function ShipInfoPanel({
   const description =
     weather?.weatherDescription ?? ship?.weatherDescription ?? null;
 
-  return (
-    <section className="info-pane">
-      <div className="info-header">
-        <img src={logoSrc} alt={`${shipLabel} logo`} className="ship-logo" />
-      </div>
+  // ShipInfoPanel.tsx (JSX return only)
 
-      {/* Ship image + Cruise News side-by-side */}
-      <div className="hero-row">
-        <div className="ship-card">
-          <img src={heroSrc} alt={shipLabel} className="ship-image" />
+return (
+<section className="ship-info-panel-root">
+  <div
+    className="ship-info-panel-topbg"
+    style={{ backgroundImage: `url(${heroSrc})` }}
+  >
+    <div className="ship-info-panel-hero">
+      <div className="ship-info-panel-hero-content">
+        <div className="ship-info-panel-shipname">
+          {shipLabel.replace(/^MVAS\s*/i, "")}
         </div>
 
-        {itineraryEndpoint && (
-          <section className="itinerary-card">
-            <h3 className="itinerary-title">Cruise News</h3>
-            <p className="itinerary-empty">
-              <img src={cruisenewsEndpoint} alt="Cruise News QR" />
-            </p>
-          </section>
-        )}
-      </div>
-
-      <div className="stats-grid">
-        {/* Latitude & Longitude */}
-        <div className="stat-box">
-          <div className="stat-label">Coordinates</div>
-          <div className="stat-value">
-            {ship ? `${ship.lat.toFixed(4)}°, ${ship.lng.toFixed(4)}°` : "--"}
-          </div>
-        </div>
-
-        {/* Ship Time (EST) */}
-        <div className="stat-box">
-          <div className="stat-label">Ship Time</div>
-          <div className="stat-value">
-            {new Date().toLocaleTimeString("en-US", {
-              timeZone: "America/New_York",
-              hour: "numeric",
-              minute: "numeric",
-              hour12: true,
-            })}{" "}
-            EST
-          </div>
-        </div>
-
-        {/* Last Update */}
-        <div className="stat-box">
-          <div className="stat-label">Last Update</div>
-          <div className="stat-value">
-            {ship ? new Date(ship.lastUpdated).toLocaleString() : "Waiting…"}
-          </div>
-        </div>
-
-        {/* Speed */}
-        <div className="stat-box">
-          <div className="stat-label">Speed</div>
-          <div className="stat-value">
-            {ship?.speedKts != null
-              ? `${ktsToMph(ship.speedKts).toFixed(1)} mph`
-              : "--"}
-          </div>
-        </div>
-
-        {/* Direction */}
-        <div className="stat-box">
-          <div className="stat-label">Direction</div>
-          <div className="stat-value">
-            {ship?.courseDeg != null ? `${ship.courseDeg.toFixed(0)}°` : "--"}
-          </div>
-        </div>
-
-        {/* Weather */}
-        <div className="stat-box">
-          <div className="stat-label">Weather</div>
-          {tempF != null || description != null ? (
-            <div className="stat-value weather-value">
-              {tempF != null && <span>{tempF.toFixed(0)}°F</span>}
-              {description && (
-                <span className="weather-desc">
-                  {description
-                    .split(" ")
-                    .map(
-                      (w: string) =>
-                        w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
-                    )
-                    .join(" ")}
-                </span>
-              )}
-              {weatherIconUrl && (
-                <img
-                  src={weatherIconUrl}
-                  alt={description || "Weather icon"}
-                  className="weather-icon"
-                />
-              )}
-              {weatherError && (
-                <span className="weather-error">({weatherError})</span>
-              )}
+        <div className="ship-info-panel-itinerary">
+          {itineraryLoading && (
+            <div className="ship-info-panel-itin-loading">
+              Loading itinerary…
             </div>
-          ) : (
-            <div className="stat-value">--</div>
+          )}
+
+          {!itineraryLoading && (itinerary?.length ?? 0) > 0 && (
+            <>
+              {(itinerary ?? []).slice(0, 3).map((row, i) => {
+                const isActive = activeIndex === i;
+                const dayNum = i + 1;
+
+                return (
+                  <div
+                    key={`${row.date}-${row.port}-${i}`}
+                    className={`ship-info-panel-itin-row ${
+                      isActive ? "is-active" : ""
+                    }`}
+                  >
+                    <div className="ship-info-panel-itin-dot" />
+                    <div className="ship-info-panel-itin-text">
+                      <span className="ship-info-panel-itin-day">
+                        Day {dayNum}
+                      </span>
+                      <span className="ship-info-panel-itin-sep">|</span>
+                      <span className="ship-info-panel-itin-port">
+                        {row.port}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </>
           )}
         </div>
       </div>
+    </div>
 
-      {/* Quote of the Day */}
-      {quote && (
-        <div className="quote-card">
-          <div className="quote-title">Quote of the Day</div>
-          <p className="quote-text">“{quote.text}”</p>
-          {quote.author && (
-            <p className="quote-author">— {quote.author}</p>
+    <div className="ship-info-panel-weather-bar">
+      <div className="ship-info-panel-weather-left">
+        <div className="ship-info-panel-weather-icon-wrap">
+          {weatherIconUrl && (
+            <img
+              src={weatherIconUrl}
+              alt={description || "Weather"}
+              className="ship-info-panel-weather-icon"
+            />
           )}
         </div>
-      )}
 
-      {/* (Optional) quote error – keep subtle or omit entirely */}
-      {!quote && quoteError && (
-        <p className="quote-error">Unable to load today’s quote.</p>
-      )}
+        <div className="ship-info-panel-weather-text">
+          <div className="ship-info-panel-weather-temp">
+            {tempF != null ? `${tempF.toFixed(0)}°F` : "--°F"}
+          </div>
+          <div className="ship-info-panel-weather-desc">
+            {description
+              ? description
+                  .split(" ")
+                  .map(
+                    (w) =>
+                      w.charAt(0).toUpperCase() +
+                      w.slice(1).toLowerCase()
+                  )
+                  .join(" ")
+              : "—"}
+          </div>
+        </div>
+      </div>
+    </div>
 
-      {/* Top-level error */}
-      {error && <p className="error-text">Error: {error}</p>}
-    </section>
+    <div className="ship-info-panel-stats-2x2">
+      <div className="ship-info-panel-stat">
+        <div className="ship-info-panel-stat-label">Longitude</div>
+        <div className="ship-info-panel-stat-value">
+          {ship ? `${ship.lng.toFixed(4)}°` : "00.0000°"}
+        </div>
+      </div>
+
+      <div className="ship-info-panel-stat">
+        <div className="ship-info-panel-stat-label">Latitude</div>
+        <div className="ship-info-panel-stat-value">
+          {ship ? `${ship.lat.toFixed(4)}°` : "00.0000°"}
+        </div>
+      </div>
+
+      <div className="ship-info-panel-stat">
+        <div className="ship-info-panel-stat-label">Speed</div>
+        <div className="ship-info-panel-stat-value">
+          {ship?.speedKts != null
+            ? `${ktsToMph(ship.speedKts).toFixed(1)} mph`
+            : "00.0 mph"}
+        </div>
+      </div>
+
+      <div className="ship-info-panel-stat">
+        <div className="ship-info-panel-stat-label">Direction</div>
+        <div className="ship-info-panel-stat-value">
+          {ship?.courseDeg != null ? `${ship.courseDeg.toFixed(0)}°` : "00°"}
+        </div>
+      </div>
+    </div>
+
+    <div className="ship-info-panel-yellow-banner">
+      <div className="ship-info-panel-yellow-text">
+        Current Ship Time:{" "}
+        {new Date().toLocaleTimeString("en-US", {
+          timeZone: "America/New_York",
+          hour: "numeric",
+          minute: "numeric",
+          hour12: true,
+        })}
+      </div>
+    </div>
+  </div>
+
+  <div className="ship-info-panel-qr-strip">
+    <div className="ship-info-panel-qr-box">
+      <div className="ship-info-panel-qr-img-wrap">
+        <img
+          src={cruisenewsEndpoint}
+          alt="Cruise News QR"
+          className="ship-info-panel-qr-img"
+        />
+      </div>
+    </div>
+
+    <div className="ship-info-panel-qr-copy">
+      <div className="ship-info-panel-qr-title">SCAN HERE FOR</div>
+      <div className="ship-info-panel-qr-title big">CRUISE NEWS</div>
+    </div>
+  </div>
+</section>
   );
 }
