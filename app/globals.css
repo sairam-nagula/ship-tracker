@@ -1,5 +1,36 @@
 @import "tailwindcss";
 
+@font-face {
+font-family: "Silent Asia";
+src: url("/fonts/Silent_Asia.otf") format("opentype");
+font-weight: 400;
+font-style: normal;
+font-display: swap;
+}
+
+@font-face {
+font-family: "Brandon Grotesque";
+src: url("/fonts/BrandonGrotesque_Regular.otf") format("opentype");
+font-weight: 400;
+font-style: normal;
+font-display: swap;
+}
+
+@font-face {
+font-family: "Brandon Grotesque";
+src: url("/fonts/BrandonGrotesque_Medium.otf") format("opentype");
+font-weight: 500;
+font-style: normal;
+font-display: swap;
+}
+
+@font-face {
+font-family: "Brandon Grotesque";
+src: url("/fonts/BrandonGrotesque_Bold.otf") format("opentype");
+font-weight: 700;
+font-style: normal;
+font-display: swap;
+}
 /* ==========================================================================
    1. DESIGN TOKENS / ROOT VARIABLES
    ========================================================================== */
@@ -47,28 +78,21 @@ html, body {
    ========================================================================== */
 
 /* Root wrapper for the page */
-.page-root {   
+.page-root {
   display: grid;
-  grid-template-columns: 3fr 4fr;
-  gap: 1.75rem;
+  grid-template-columns: 3fr 7fr; /* was 3fr 4fr */  
   height: 100vh;
-  padding: 1rem;
-  background:  var(--bg-panel); /* site background behind the panel */ 
-}
-
-/* Main content panel */
-.info-pane {
-  height: 100%;
   background: var(--bg-panel);
-  flex-direction: column;
-  border-radius: 1.25rem;
-  flex: 1;
-  padding: 2rem;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  }
 
-}
+  /* Main content panel */
+.info-pane,
+.map-pane {
+  height: 100%;
+  }
 
-/* ==========================================================================
+
+    /* ==========================================================================
    3.1 MAP MODULE / CARD
    ========================================================================== */
 
@@ -279,12 +303,21 @@ html, body {
 
 /* Map looks like a module/card, not full pane */
 .map-card {
-  height: 100%;
-  border-radius: 1.25rem;
+  height: 103%;
   overflow: hidden;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.1);
   background: #020617;
+  position: relative;
+} 
+
+.map-watermark-logo {
+  position: absolute;
+  right: 28px;
+  bottom: 50px;  
+  width: 270px;
+  height: auto;
+  opacity: 0.95;
+  pointer-events: none;
+  z-index: 5;
 }
 
 /* ==========================================================================  
@@ -502,4 +535,336 @@ body {
   margin-top: 0.75rem;
   font-size: 0.8rem;
   color: #fca5a5;
+}
+
+
+:root {
+--ship-info-panel-deep: #0a406b;
+--ship-info-panel-mid: #0b4f86;
+--ship-info-panel-border: rgba(255, 255, 255, 0.18);
+--ship-info-panel-white: rgba(255, 255, 255, 0.95);
+--ship-info-panel-yellow: #f2d24b;
+--ship-info-panel-divider: rgba(255, 255, 255, 0.22);
+}
+
+.ship-info-panel-root {
+  height: 100%;
+  padding: 18px 18px 0;
+  background: linear-gradient(
+  180deg,
+  var(--ship-info-panel-mid),
+  var(--ship-info-panel-deep)
+  );
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  box-shadow: 1px 0 35px rgba(0, 0, 0, 0.45);
+}
+ 
+
+.ship-info-panel-topbg {
+flex: 1;
+min-height: 0;
+display: flex;
+flex-direction: column;
+
+margin: -18px -18px 0;
+padding: 18px 18px 0;
+
+background-size: cover;
+background-position: top center;
+background-repeat: no-repeat;
+}
+
+.ship-info-panel-hero {
+position: relative;
+height: 330px;
+margin: 0;
+border: none;
+border-radius: 0;
+overflow: hidden;
+background: transparent;
+}
+
+.ship-info-panel-hero::after {
+content: "";
+position: absolute;
+inset: 0;
+background: linear-gradient(
+to bottom,
+rgba(0, 0, 0, 0.00) 35%,
+rgba(11, 79, 134, 0.35) 62%,
+rgba(11, 79, 134, 0.85) 82%,
+rgba(10, 64, 107, 1.00) 100%
+);
+pointer-events: none;
+z-index: 1;
+}
+
+.ship-info-panel-hero-content {
+position: absolute;
+left: 22px;
+bottom: 18px;
+z-index: 2;
+}
+
+.ship-info-panel-shipname {
+font-size: 44px;
+color: var(--ship-info-panel-white);
+margin-bottom: 14px;
+}
+
+.ship-info-panel-itinerary {
+display: flex;
+flex-direction: column;
+gap: 10px;
+}
+
+.ship-info-panel-itin-loading {
+color: rgba(255, 255, 255, 0.85);
+font-size: 14px;
+}
+
+.ship-info-panel-itin-row {
+display: flex;
+align-items: center;
+gap: 10px;
+color: rgba(255, 255, 255, 0.85);
+}
+
+.ship-info-panel-itin-row.is-active {
+color: var(--ship-info-panel-white);
+}
+
+.ship-info-panel-itin-dot {
+width: 10px;
+height: 10px;
+border-radius: 999px;
+background: rgba(255, 255, 255, 0.35);
+flex: 0 0 auto;
+}
+
+.ship-info-panel-itin-text {
+display: flex;
+align-items: center;
+gap: 10px;
+flex-wrap: wrap;
+}
+
+.ship-info-panel-itin-day {
+font-weight: 700;
+}
+
+.ship-info-panel-itin-sep {
+opacity: 0.75;
+}
+
+.ship-info-panel-itin-port {
+opacity: 0.95;
+}
+
+.ship-info-panel-weather-bar {
+border-radius: 0;
+border: none;
+padding: 14px 0;
+display: flex;
+justify-content: space-between;
+gap: 12px;
+margin: 14px 0 10px;
+border-top: 1px solid var(--ship-info-panel-divider);
+border-bottom: 1px solid var(--ship-info-panel-divider);
+}
+
+.ship-info-panel-weather-left {
+display: flex;
+align-items: center;
+gap: 12px;
+}
+
+.ship-info-panel-weather-icon-wrap {
+width: 54px;
+height: 54px;
+display: grid;
+place-items: center;
+}
+
+.ship-info-panel-weather-icon {
+width: 54px;
+height: 54px;
+object-fit: contain;
+}
+
+.ship-info-panel-weather-text {
+display: flex;
+flex-direction: column;
+gap: 2px;
+}
+
+.ship-info-panel-weather-temp {
+font-size: 26px;
+font-weight: 800;
+color: var(--ship-info-panel-white);
+line-height: 1;
+}
+
+.ship-info-panel-weather-desc {
+color: rgba(255, 255, 255, 0.85);
+font-size: 14px;
+}
+
+.ship-info-panel-weather-right {
+display: flex;
+align-items: center;
+justify-content: flex-end;
+min-width: 120px;
+}
+
+.ship-info-panel-stats-2x2 {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 24px 40px;
+margin-bottom: 14px;
+padding-top: 6px;
+}
+
+.ship-info-panel-stat {
+border-radius: 0;
+border: none;
+padding: 0;
+}
+
+.ship-info-panel-stat-label {
+font-size: 12px;
+letter-spacing: 0.12em;
+text-transform: uppercase;
+color: rgba(255, 255, 255, 0.75);
+margin-bottom: 6px;
+}
+
+.ship-info-panel-stat-value {
+font-size: 26px;
+font-weight: 900;
+color: var(--ship-info-panel-white);
+line-height: 1.05;
+}
+
+.ship-info-panel-yellow-banner {
+margin-top: auto;
+background: var(--ship-info-panel-yellow);
+padding: 14px;
+margin-left: -18px;
+margin-right: -18px;
+text-align: center;
+}
+
+.ship-info-panel-yellow-text {
+color: rgba(0, 0, 0, 0.85);
+font-weight: 700;
+}
+
+.ship-info-panel-qr-strip {
+flex-shrink: 0;
+margin: 0 -18px;
+background-image: url("/cruise-news-background.png");
+background-size: cover;
+background-position: center;
+background-repeat: no-repeat;
+padding: 18px;
+display: grid;
+grid-template-columns: 160px 1fr;
+gap: 18px;
+}
+
+.ship-info-panel-qr-box {
+display: flex;
+align-items: center;
+justify-content: center;
+}
+
+.ship-info-panel-qr-img-wrap {
+display: grid;
+place-items: center;
+}
+
+.ship-info-panel-qr-copy {
+display: flex;
+flex-direction: column;
+justify-content: center;
+gap: 6px;
+}
+
+.ship-info-panel-qr-title {
+color: rgba(0, 0, 0, 0.85);
+font-weight: 800;
+letter-spacing: 0.06em;
+}
+
+.ship-info-panel-qr-title.big {
+font-size: 22px;
+letter-spacing: 0.08em;
+}
+
+.ship-info-panel-shipname {
+  font-family: "Silent Asia", cursive;
+  font-size: 65px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+.ship-info-panel-itin-row,
+.ship-info-panel-itin-text,
+.ship-info-panel-itin-port,
+.ship-info-panel-itin-sep {
+font-family: "Brandon Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+font-size: 28px;
+font-weight: 400;
+}
+
+.ship-info-panel-itin-day {
+font-family: "Brandon Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+font-size: 28px;
+font-weight: 500;
+}
+
+.ship-info-panel-weather-temp {
+font-family: "Brandon Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+font-size: 28px;
+font-weight: 700;
+line-height: 1;
+}
+
+.ship-info-panel-weather-desc {
+font-family: "Brandon Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+font-size: 28px;
+font-weight: 400;
+}
+
+.ship-info-panel-stat-label {
+font-family: "Brandon Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+font-size: 20px;
+font-weight: 400;
+letter-spacing: 0.12em;
+text-transform: uppercase;
+}
+
+.ship-info-panel-stat-value {
+font-family: "Brandon Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+font-size: 26px;
+font-weight: 700;
+}
+
+.ship-info-panel-yellow-text {
+font-family: "Brandon Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+font-size: 20px;
+font-weight: 700;
+}
+
+.ship-info-panel-qr-title,
+.ship-info-panel-qr-title.big {
+font-family: "Brandon Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+font-size: 30px;
+font-weight: 700;
+line-height: 35px;
+letter-spacing: 0.08em;
+text-transform: uppercase;
 }

@@ -181,51 +181,55 @@ export function ShipMap({ ship, error, track = [] }: Props) {
   }, [isLoaded, ship]);
 
   return (
-    <section className="map-pane">
-      <div className="map-card">
-        {isLoaded && ship ? (
-          <GoogleMap
-            mapContainerStyle={mapContainerStyle}
-            center={center}
-            zoom={zoom}
-            options={{
-              mapId: MAP_ID,
-              disableDefaultUI: true,
-              zoomControl: false,
-              mapTypeControl: false,
-              streetViewControl: false,
-              fullscreenControl: false,
-              keyboardShortcuts: false,
-              clickableIcons: false,
-            }}
-          >
-            {/* Fading track: older segments lighter, newer darker */}
-            {fadedSegments.map((segment, idx) => (
-              <PolylineF
-                key={idx}
-                path={segment.path}
-                options={{
-                  geodesic: false,             
-                  strokeOpacity: segment.opacity,
-                  strokeWeight: 1.5,
-                  strokeColor: "#000000",
-                  strokeLinecap: "round",      
-                  strokeLinejoin: "round",    
-                } as google.maps.PolylineOptions
-                }
-              />
+  <section className="map-pane">
+    <div className="map-card">
+      {isLoaded && ship ? (
+        <GoogleMap
+          mapContainerStyle={mapContainerStyle}
+          center={center}
+          zoom={zoom}
+          options={{
+            mapId: MAP_ID,
+            disableDefaultUI: true,
+            zoomControl: false,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: false,
+            keyboardShortcuts: false,
+            clickableIcons: false,
+            styles: [
+              { featureType: "water", elementType: "geometry", stylers: [{ color: "#dff1fb" }] },
+              { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#b2d0df" }] },
+              { featureType: "administrative", elementType: "labels", stylers: [{ visibility: "off" }] },
+              { featureType: "poi", stylers: [{ visibility: "off" }] },
+              { featureType: "road", stylers: [{ visibility: "off" }] },
+            ],
+          }}
+        >
+          {fadedSegments.map((segment, idx) => (
+            <PolylineF
+              key={idx}
+              path={segment.path}
+              options={{
+                geodesic: false,
+                strokeOpacity: segment.opacity,
+                strokeWeight: 1.5,
+                strokeColor: "#000000",
+                strokeLinecap: "round",
+                strokeLinejoin: "round",
+              } as google.maps.PolylineOptions}
+            />
+          ))}
 
-            ))}
+          <MarkerF position={markerPosition} icon={shipIcon} />
+        </GoogleMap>
+      ) : (
+        <div className="map-loading">{error ? `Error: ${error}` : "Loading map…"}</div>
+      )}
 
-            {/* Ship Marker snapped to end of track when needed */}
-            <MarkerF position={markerPosition} icon={shipIcon} />
-          </GoogleMap>
-        ) : (
-          <div className="map-loading">
-            {error ? `Error: ${error}` : "Loading map…"}
-          </div>
-        )}
-      </div>
-    </section>
-  );
+      <img src="/mvas-logo.png" alt="MVAS Logo" className="map-watermark-logo" />
+    </div>
+  </section>
+);
+
 }
