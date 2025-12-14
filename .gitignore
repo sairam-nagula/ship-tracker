@@ -41,6 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 
-# non public images
-public/MVAS_Islander Logo.png
-public/MVAS_Paradise Logo.png
+# # non public images
+# public/MVAS_Islander Logo.png
+# public/MVAS_Paradise Logo.png
