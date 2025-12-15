@@ -544,7 +544,7 @@ body {
 --ship-info-panel-border: rgba(255, 255, 255, 0.18);
 --ship-info-panel-white: rgba(255, 255, 255, 0.95);
 --ship-info-panel-yellow: #f2d24b;
---ship-info-panel-divider: rgba(255, 255, 255, 0.22);
+--ship-info-panel-divider: rgba(255, 255, 255, 0.52);
 }
 
 .ship-info-panel-root {
@@ -657,7 +657,7 @@ padding: 14px 0;
 display: flex;
 justify-content: space-between;
 gap: 12px;
-margin: 14px 0 10px;
+margin: 14px 80px 10px;
 border-top: 1px solid var(--ship-info-panel-divider);
 border-bottom: 1px solid var(--ship-info-panel-divider);
 }
@@ -679,12 +679,16 @@ place-items: center;
 width: 54px;
 height: 54px;
 object-fit: contain;
+margin-left: 82px;
 }
 
 .ship-info-panel-weather-text {
 display: flex;
-flex-direction: column;
-gap: 2px;
+flex-direction: row;
+align-items: baseline;
+gap: 14px; 
+margin-left: 62px;
+
 }
 
 .ship-info-panel-weather-temp {
@@ -697,6 +701,7 @@ line-height: 1;
 .ship-info-panel-weather-desc {
 color: rgba(255, 255, 255, 0.85);
 font-size: 14px;
+line-height: 1;
 }
 
 .ship-info-panel-weather-right {
@@ -710,8 +715,7 @@ min-width: 120px;
 display: grid;
 grid-template-columns: 1fr 1fr;
 gap: 24px 40px;
-margin-bottom: 14px;
-padding-top: 6px;
+margin-bottom: 114px;
 }
 
 .ship-info-panel-stat {
@@ -760,12 +764,17 @@ padding: 18px;
 display: grid;
 grid-template-columns: 160px 1fr;
 gap: 18px;
+justify-content: center; 
 }
+
+
 
 .ship-info-panel-qr-box {
 display: flex;
 align-items: center;
 justify-content: center;
+transform: translateX(100px);
+
 }
 
 .ship-info-panel-qr-img-wrap {
@@ -780,16 +789,7 @@ justify-content: center;
 gap: 6px;
 }
 
-.ship-info-panel-qr-title {
-color: rgba(0, 0, 0, 0.85);
-font-weight: 800;
-letter-spacing: 0.06em;
-}
 
-.ship-info-panel-qr-title.big {
-font-size: 22px;
-letter-spacing: 0.08em;
-}
 
 .ship-info-panel-shipname {
   font-family: "Silent Asia", cursive;
@@ -850,7 +850,10 @@ font-weight: 700;
 .ship-info-panel-qr-title.big {
 font-family: "Brandon Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 font-size: 30px;
-font-weight: 700;
+color: #00407A;
+transform: translateX(100px);
+
+font-weight: 900;
 line-height: 35px;
 letter-spacing: 0.08em;
 text-transform: uppercase;
@@ -878,4 +881,39 @@ width: 10px;
 height: 10px;
 border-radius: 999px;
 background: var(--ship-info-panel-yellow);
+}
+
+
+
+
+.ship-info-panel-weather-left {
+  width: min(640px, 100%);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 28px;
+}
+
+.ship-info-panel-weather-icon {
+  margin-left: 0;
+}
+
+.ship-info-panel-weather-text {
+  margin-left: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.ship-info-panel-stats-2x2 {
+  width: min(640px, 100%);
+  margin: 0 auto 14px;
+  padding: 0 28px;
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 140px;
+  row-gap: 54px;
 }

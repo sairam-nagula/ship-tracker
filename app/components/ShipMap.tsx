@@ -1,10 +1,9 @@
 "use client";
 
 import { GoogleMap, MarkerF, PolylineF } from "@react-google-maps/api";
-import { useMemo, useState, useEffect } from "react";
 import type { ShipLocation } from "./useShipLocation";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { useGoogleMapsLoader } from "./useGoogleMapsLoader";
-
 
 const mapContainerStyle = {
   width: "100%",
@@ -17,20 +16,44 @@ export type ShipTrackPoint = {
   date: string;
 };
 
+type ItineraryRow = {
+  date: string;
+  port: string;
+  lat: number | string | null;
+  lng: number | string | null;
+};
+
 type Props = {
   ship: ShipLocation | null;
   error: string | null;
   track?: ShipTrackPoint[];
+  itineraryEndpoint?: string;
 };
 
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAP_ID;
 
-export function ShipMap({ ship, error, track = [] }: Props) {
+function toNumber(v: unknown): number | null {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v === "string") {
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+export function ShipMap({ ship, error, track = [], itineraryEndpoint }: Props) {
   const { isLoaded } = useGoogleMapsLoader();
 
-  const [zoom, setZoom] = useState(7);
+  const [itineraryRows, setItineraryRows] = useState<ItineraryRow[]>([]);
+  const [itineraryDayIndex, setItineraryDayIndex] = useState<number | null>(null);
 
-  // Raw ship center from live data
+  const mapRef = useRef<google.maps.Map | null>(null);
+
+  const handleMapLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map;
+  }, []);
+
   const shipCenter =
     ship && Number.isFinite(ship.lat) && Number.isFinite(ship.lng)
       ? { lat: ship.lat, lng: ship.lng }
@@ -38,7 +61,6 @@ export function ShipMap({ ship, error, track = [] }: Props) {
 
   const heading = ship?.courseDeg ?? 0;
 
-  // Basic ship triangle icon
   const shipIcon = useMemo(() => {
     if (typeof window === "undefined") return undefined;
     const g = (window as any).google?.maps;
@@ -56,7 +78,6 @@ export function ShipMap({ ship, error, track = [] }: Props) {
     };
   }, [heading, isLoaded]);
 
-  // Build a simple path directly from track
   const path = useMemo(
     () =>
       (track || [])
@@ -65,15 +86,11 @@ export function ShipMap({ ship, error, track = [] }: Props) {
     [track]
   );
 
-  // Compute marker position:
-  // - If we have a path and the last point is not (basically) equal to shipCenter,
-  //   use the last path point to avoid a gap.
-  // - Otherwise, use shipCenter.
   const markerPosition = useMemo(() => {
     if (!path.length) return shipCenter;
 
     const last = path[path.length - 1];
-    const epsilon = 0.0001; // small threshold for "same place"
+    const epsilon = 0.0001;
 
     const isSameAsShipCenter =
       Math.abs(last.lat - shipCenter.lat) < epsilon &&
@@ -82,17 +99,14 @@ export function ShipMap({ ship, error, track = [] }: Props) {
     return isSameAsShipCenter ? shipCenter : last;
   }, [path, shipCenter.lat, shipCenter.lng]);
 
-  // Use markerPosition as the map center so the camera follows what the guest sees
   const center = markerPosition;
 
-  // Build faded segments: older = lighter, newer = darker
   const fadedSegments = useMemo(() => {
     if (path.length < 2) return [];
 
     const maxSegments = 10;
     const segmentsCount = Math.min(maxSegments, path.length - 1);
-    const segments: { path: { lat: number; lng: number }[]; opacity: number }[] =
-      [];
+    const segments: { path: { lat: number; lng: number }[]; opacity: number }[] = [];
 
     const oldestOpacity = 0.15;
     const newestOpacity = 0.9;
@@ -104,10 +118,8 @@ export function ShipMap({ ship, error, track = [] }: Props) {
       const segmentPath = path.slice(startIndex, endIndex);
       if (segmentPath.length < 2) continue;
 
-      const t =
-        segmentsCount === 1 ? 1 : s / (segmentsCount - 1); // 0 = oldest, 1 = newest
-      const opacity =
-        oldestOpacity + (newestOpacity - oldestOpacity) * t;
+      const t = segmentsCount === 1 ? 1 : s / (segmentsCount - 1);
+      const opacity = oldestOpacity + (newestOpacity - oldestOpacity) * t;
 
       segments.push({ path: segmentPath, opacity });
     }
@@ -115,121 +127,176 @@ export function ShipMap({ ship, error, track = [] }: Props) {
     return segments;
   }, [path]);
 
-  // Zoom in → hold → zoom out → hold cycle
   useEffect(() => {
-    if (!isLoaded || !ship) return;
+    if (!itineraryEndpoint) {
+      setItineraryRows([]);
+      setItineraryDayIndex(null);
+      return;
+    }
 
-    const minZoom = 7;
-    const maxZoom = 11; // how close you want to get
-    const step = 0.25; // how fast you zoom (bigger = faster)
-    const frameMs = 80; // how often we update
+    const url = itineraryEndpoint;
 
-    const holdInMs = 4000; // stay zoomed in for 4 seconds
-    const holdOutMs = 10000; // stay zoomed out for 10 seconds
+    let cancelled = false;
 
-    type Phase = "zoomIn" | "holdIn" | "zoomOut" | "holdOut";
+    async function load() {
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error(`Itinerary API error: ${res.status}`);
 
-    let phase: Phase = "zoomIn";
-    let currentZoom = minZoom;
-    let holdUntil = 0;
+        const json = await res.json();
 
-    setZoom(currentZoom);
+        const rowsRaw = Array.isArray(json?.rows) ? json.rows : [];
+        const idx = typeof json?.currentDayIndex === "number" ? json.currentDayIndex : null;
 
-    const id = setInterval(() => {
-      const now = Date.now();
-
-      switch (phase) {
-        case "zoomIn": {
-          currentZoom = Math.min(maxZoom, currentZoom + step);
-          setZoom(currentZoom);
-
-          if (currentZoom >= maxZoom) {
-            phase = "holdIn";
-            holdUntil = now + holdInMs;
-          }
-          break;
+        if (!cancelled) {
+          setItineraryRows(rowsRaw as ItineraryRow[]);
+          setItineraryDayIndex(idx);
         }
-
-        case "holdIn": {
-          if (now >= holdUntil) {
-            phase = "zoomOut";
-          }
-          break;
-        }
-
-        case "zoomOut": {
-          currentZoom = Math.max(minZoom, currentZoom - step);
-          setZoom(currentZoom);
-
-          if (currentZoom <= minZoom) {
-            phase = "holdOut";
-            holdUntil = now + holdOutMs;
-          }
-          break;
-        }
-
-        case "holdOut": {
-          if (now >= holdUntil) {
-            phase = "zoomIn";
-          }
-          break;
+      } catch (e) {
+        console.error("Itinerary load failed:", e);
+        if (!cancelled) {
+          setItineraryRows([]);
+          setItineraryDayIndex(null);
         }
       }
-    }, frameMs);
+    }
 
-    return () => clearInterval(id);
-  }, [isLoaded, ship]);
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [itineraryEndpoint]);
+
+  const itineraryMarkers = useMemo(() => {
+    return (itineraryRows || [])
+      .map((r, i) => {
+        const lat = toNumber(r.lat);
+        const lng = toNumber(r.lng);
+        if (lat === null || lng === null) return null;
+
+        return {
+          key: `${r.port}-${i}`,
+          port: r.port,
+          pos: { lat, lng },
+          isActive: itineraryDayIndex === i,
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null);
+  }, [itineraryRows, itineraryDayIndex]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (!ship || !Number.isFinite(ship.lat) || !Number.isFinite(ship.lng)) return;
+    if (itineraryMarkers.length === 0) return;
+
+    const bounds = new google.maps.LatLngBounds();
+
+    bounds.extend({ lat: ship.lat, lng: ship.lng });
+
+    for (const m of itineraryMarkers) {
+      bounds.extend(m.pos);
+    }
+
+    map.fitBounds(bounds, 40);
+
+    const once = google.maps.event.addListenerOnce(map, "bounds_changed", () => {
+      const z = map.getZoom();
+      if (typeof z === "number" && z > 9) map.setZoom(9);
+    });
+
+    return () => {
+      google.maps.event.removeListener(once);
+    };
+  }, [itineraryMarkers, ship]);
+
+  const destinationIcon = useMemo(() => {
+    if (typeof window === "undefined") return undefined;
+    const g = (window as any).google?.maps;
+    if (!g) return undefined;
+
+    return {
+      url: "/destination-marker.png",
+      scaledSize: new g.Size(28, 28),
+      anchor: new g.Point(14, 28),
+    };
+  }, [isLoaded]);
+
+  const destinationIconActive = useMemo(() => {
+    if (typeof window === "undefined") return undefined;
+    const g = (window as any).google?.maps;
+    if (!g) return undefined;
+
+    return {
+      url: "/destination-marker.png",
+      scaledSize: new g.Size(38, 38),
+      anchor: new g.Point(19, 38),
+    };
+  }, [isLoaded]);
 
   return (
-  <section className="map-pane">
-    <div className="map-card">
-      {isLoaded && ship ? (
-        <GoogleMap
-          mapContainerStyle={mapContainerStyle}
-          center={center}
-          zoom={zoom}
-          options={{
-            mapId: MAP_ID,
-            disableDefaultUI: true,
-            zoomControl: false,
-            mapTypeControl: false,
-            streetViewControl: false,
-            fullscreenControl: false,
-            keyboardShortcuts: false,
-            clickableIcons: false,
-            styles: [
-              { featureType: "water", elementType: "geometry", stylers: [{ color: "#dff1fb" }] },
-              { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#b2d0df" }] },
-              { featureType: "administrative", elementType: "labels", stylers: [{ visibility: "off" }] },
-              { featureType: "poi", stylers: [{ visibility: "off" }] },
-              { featureType: "road", stylers: [{ visibility: "off" }] },
-            ],
-          }}
-        >
-          {fadedSegments.map((segment, idx) => (
-            <PolylineF
-              key={idx}
-              path={segment.path}
-              options={{
-                geodesic: false,
-                strokeOpacity: segment.opacity,
-                strokeWeight: 1.5,
-                strokeColor: "#000000",
-                strokeLinecap: "round",
-                strokeLinejoin: "round",
-              } as google.maps.PolylineOptions}
-            />
-          ))}
+    <section className="map-pane">
+      <div className="map-card">
+        {isLoaded && ship ? (
+          <GoogleMap
+            mapContainerStyle={mapContainerStyle}
+            center={center}
+            zoom={6}
+            onLoad={handleMapLoad}
+            options={{
+              mapId: MAP_ID,
+              disableDefaultUI: true,
+              zoomControl: false,
+              mapTypeControl: false,
+              streetViewControl: false,
+              fullscreenControl: false,
+              keyboardShortcuts: false,
+              clickableIcons: false,
+              styles: [
+                { featureType: "water", elementType: "geometry", stylers: [{ color: "#dff1fb" }] },
+                { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#b2d0df" }] },
+                { featureType: "administrative", elementType: "labels", stylers: [{ visibility: "off" }] },
+                { featureType: "poi", stylers: [{ visibility: "off" }] },
+                { featureType: "road", stylers: [{ visibility: "off" }] },
+              ],
+            }}
+          >
+            {fadedSegments.map((segment, idx) => (
+              <PolylineF
+                key={idx}
+                path={segment.path}
+                options={{
+                  geodesic: false,
+                  strokeOpacity: segment.opacity,
+                  strokeWeight: 1.5,
+                  strokeColor: "#000000",
+                  strokeLinecap: "round",
+                  strokeLinejoin: "round",
+                } as google.maps.PolylineOptions}
+              />
+            ))}
 
-          <MarkerF position={markerPosition} icon={shipIcon} />
-        </GoogleMap>
-      ) : (
-        <div className="map-loading">{error ? `Error: ${error}` : "Loading map…"}</div>
-      )}
+            {itineraryMarkers.map((m) => (
+              <MarkerF
+                key={m.key}
+                position={m.pos}
+                icon={m.isActive ? destinationIconActive : destinationIcon}
+                options={{
+                  clickable: false,
+                  zIndex: m.isActive ? 30 : 10,
+                }}
+              />
+            ))}
 
-      <img src="/mvas-logo.png" alt="MVAS Logo" className="map-watermark-logo" />
-    </div>
-  </section>
-);
+            <MarkerF position={markerPosition} icon={shipIcon} />
+          </GoogleMap>
+        ) : (
+          <div className="map-loading">{error ? `Error: ${error}` : "Loading map…"}</div>
+        )}
 
+        <img src="/mvas-logo.png" alt="MVAS Logo" className="map-watermark-logo" />
+      </div>
+    </section>
+  );
 }

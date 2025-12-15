@@ -198,6 +198,78 @@ function daysBetweenUTC(
   return Math.floor((A - B) / 86400000);
 }
 
+/* =======================
+   ✅ 12-hour in-memory cookie cache
+   ======================= */
+
+type CookieCache = {
+  cookie: string;
+  expiresAt: number;
+};
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __KAPTURE_COOKIE_CACHE__: CookieCache | undefined;
+}
+
+const COOKIE_TTL_MS = 12 * 60 * 60 * 1000;
+
+async function getCachedKaptureCookie(): Promise<string> {
+  const now = Date.now();
+  const cached = globalThis.__KAPTURE_COOKIE_CACHE__;
+  if (cached && cached.cookie && cached.expiresAt > now) {
+    return cached.cookie;
+  }
+
+  const cookie =
+    process.env.KAPTURE_COOKIE ||
+    (await getKaptureCookieHeader({
+      loginUrl: process.env.KAPTURE_LOGIN_URL!,
+      username: process.env.KAPTURE_USERNAME!,
+      password: process.env.KAPTURE_PASSWORD!,
+    }));
+
+  if (!cookie) throw new Error("Unable to obtain Kapture cookie");
+
+  globalThis.__KAPTURE_COOKIE_CACHE__ = {
+    cookie,
+    expiresAt: now + COOKIE_TTL_MS,
+  };
+
+  return cookie;
+}
+
+async function fetchWithKaptureCookie(
+  url: string,
+  init: RequestInit,
+  cookie: string
+): Promise<Response> {
+  const res = await fetch(url, {
+    ...init,
+    headers: {
+      ...(init.headers || {}),
+      Cookie: cookie,
+    },
+    cache: "no-store",
+  });
+
+  // If cookie expired server-side, refresh once and retry
+  if (res.status === 401 || res.status === 403) {
+    globalThis.__KAPTURE_COOKIE_CACHE__ = undefined;
+    const fresh = await getCachedKaptureCookie();
+    return await fetch(url, {
+      ...init,
+      headers: {
+        ...(init.headers || {}),
+        Cookie: fresh,
+      },
+      cache: "no-store",
+    });
+  }
+
+  return res;
+}
+
 export async function GET(req: Request) {
   try {
     const itineraryUrl =
@@ -205,20 +277,7 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
 
-    const cookie =
-      process.env.KAPTURE_COOKIE ||
-      (await getKaptureCookieHeader({
-        loginUrl: process.env.KAPTURE_LOGIN_URL!,
-        username: process.env.KAPTURE_USERNAME!,
-        password: process.env.KAPTURE_PASSWORD!,
-      }));
-
-    if (!cookie) {
-      return NextResponse.json(
-        { error: "Missing KAPTURE_COOKIE env var" },
-        { status: 500 }
-      );
-    }
+    const cookie = await getCachedKaptureCookie();
 
     const cruiseId =
       searchParams.get("cruise_id") || process.env.KAPTURE_CRUISE_ID || "77";
@@ -240,22 +299,24 @@ export async function GET(req: Request) {
     const body = new URLSearchParams();
     body.set("sailing_id", sailingId);
 
-    const res = await fetch(itineraryUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        Accept: "*/*",
-        Origin: "https://bahamas.kapturecrm.com",
-        Referer:
-          "https://bahamas.kapturecrm.com/employee/cruise-sailing-details.html",
-        "X-Requested-With": "XMLHttpRequest",
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15",
-        Cookie: cookie,
+    const res = await fetchWithKaptureCookie(
+      itineraryUrl,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          Accept: "*/*",
+          Origin: "https://bahamas.kapturecrm.com",
+          Referer:
+            "https://bahamas.kapturecrm.com/employee/cruise-sailing-details.html",
+          "X-Requested-With": "XMLHttpRequest",
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15",
+        },
+        body,
       },
-      body,
-      cache: "no-store",
-    });
+      cookie
+    );
 
     if (!res.ok) {
       throw new Error(`Kapture itinerary error: ${res.status} ${res.statusText}`);
@@ -340,7 +401,7 @@ export async function GET(req: Request) {
       { status: 200 }
     );
   } catch (err: any) {
-    console.error("Error in /api/paradise-itinerary:", err);
+    console.error("Error in /api/islander-itinerary:", err);
     return NextResponse.json(
       {
         error: "Failed to load itinerary",
