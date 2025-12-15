@@ -8,6 +8,7 @@ type ItineraryRow = {
   port: string;
 };
 
+
 type Props = {
   ship: ShipLocation | null;
   error: string | null;
@@ -19,9 +20,10 @@ type Props = {
 };
 
 type WeatherState = {
-  weatherTempC: number | null;
+  weatherTempF: number | null;
   weatherDescription: string | null;
-  weatherIcon: string | null;
+  weatherId: number | null;
+  weatherIconLocal: string | null;
 };
 
 type Quote = {
@@ -132,7 +134,6 @@ function getWeatherEndpoint(shipLabel: string): string | null {
     .replace(/^mvas\s*/, "") // remove "mvas" at the start
     .trim();
 
-  console.log("Normalized ship label for weather:", normalized);
 
   if (normalized === "paradise") {
     return "/api/Paradise/paradise-weather";
@@ -185,14 +186,9 @@ export function ShipInfoPanel({
 
   // Weather endpoint (determined automatically from label)
   const weatherEndpoint = getWeatherEndpoint(shipLabel);
-  console.log("Weather API endpoint:", weatherEndpoint);
 
   // Pick weather icon code from fetched weather first, fallback to ship
-  const weatherIconCode = weather?.weatherIcon ?? ship?.weatherIcon ?? null;
-
-  const weatherIconUrl = weatherIconCode
-    ? `https://openweathermap.org/img/wn/${weatherIconCode}@2x.png`
-    : null;
+  const weatherLocalIcon = weather?.weatherIconLocal ?? null;
 
   // Load itinerary data
   useEffect(() => {
@@ -240,14 +236,20 @@ export function ShipInfoPanel({
 
         const json = await res.json();
         setWeather({
-          weatherTempC:
-            typeof json.weatherTempC === "number" ? json.weatherTempC : null,
-          weatherDescription:
-            typeof json.weatherDescription === "string"
-              ? json.weatherDescription
+          weatherTempF:
+            typeof json.weatherTempF === "number"
+              ? json.weatherTempF
+              : typeof json.weatherTempC === "number"
+              ? json.weatherTempC
               : null,
-          weatherIcon:
-            typeof json.weatherIcon === "string" ? json.weatherIcon : null,
+
+          weatherDescription:
+            typeof json.weatherDescription === "string" ? json.weatherDescription : null,
+
+          weatherId: typeof json.weatherId === "number" ? json.weatherId : null,
+
+          weatherIconLocal:
+            typeof json.weatherIconLocal === "string" ? json.weatherIconLocal : null,
         });
       } catch (e: any) {
         console.error(e);
@@ -330,9 +332,8 @@ export function ShipInfoPanel({
   }, [itinerary]);
 
   // Prefer fetched weather; fall back to ship
-  const tempF = weather?.weatherTempC ?? ship?.weatherTempC ?? null;
-  const description =
-    weather?.weatherDescription ?? ship?.weatherDescription ?? null;
+  const tempF = weather?.weatherTempF ?? ship?.weatherTempC ?? null;
+  const description = weather?.weatherDescription ?? ship?.weatherDescription ?? null;
 
   const startIdx =
     itinerary && itinerary.length > 3 && activeIndex != null
@@ -382,26 +383,18 @@ return (
                         "opacity 180ms ease, transform 180ms ease, filter 180ms ease",
                     }}
                   >
-                    {isActive ? (
-                      <img
-                        src="/location-marker-white-smaller.png"
-                        alt=""
-                        className="ship-info-panel-itin-marker"
-                        style={{ width: 28, height: 28, objectFit: "contain" }}
-                      />
-                    ) : (
-                      <div
-                        className="ship-info-panel-itin-dot is-yellow"
-                        style={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: 999,
-                          background: "var(--ship-info-panel-yellow)",
-                          flex: "0 0 auto",
-                          opacity: 1,
-                        }}
-                      />
-                    )}
+                    <div className="ship-info-panel-itin-icon">
+                      {isActive ? (
+                        <img
+                          src="/location-marker-white-smaller.png"
+                          alt=""
+                          className="ship-info-panel-itin-marker"
+                        />
+                      ) : (
+                        <div className="ship-info-panel-itin-dot is-yellow" />
+                      )}
+                    </div>
+
 
                     <div className="ship-info-panel-itin-text">
                       <span className="ship-info-panel-itin-day">Day {dayNum}</span>
@@ -419,10 +412,11 @@ return (
 
     <div className="ship-info-panel-weather-bar">
       <div className="ship-info-panel-weather-left">
+
         <div className="ship-info-panel-weather-icon-wrap">
-          {weatherIconUrl && (
+          {weatherLocalIcon && (
             <img
-              src={weatherIconUrl}
+              src={weatherLocalIcon}
               alt={description || "Weather"}
               className="ship-info-panel-weather-icon"
             />

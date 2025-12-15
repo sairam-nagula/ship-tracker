@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "updatedAt": "2025-12-15T01:39:27.523Z",
+  "entries": {
+    "port tampa bay": {
+      "lat": 27.9503837,
+      "lng": -82.4450219
+    },
+    "cozumel, mexico": {
+      "lat": 20.4229839,
+      "lng": -86.9223432
+    },
+    "progreso, mexico": {
+      "lat": 21.2811908,
+      "lng": -89.66516279999999
+    }
+  }
+}

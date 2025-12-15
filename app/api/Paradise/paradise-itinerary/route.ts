@@ -1,6 +1,10 @@
 // app/api/paradise-itinerary/route.ts
 import { NextResponse } from "next/server";
 import * as cheerio from "cheerio";
+import { getKaptureCookieHeader } from "@/app/api/Kapture/kapture_auth";
+import { getCachedKaptureCookie } from "@/app/api/Kapture/kapture_cookiecache";
+
+
 
 type ItineraryRow = {
   date: string;
@@ -201,7 +205,14 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
 
-    const cookie = process.env.KAPTURE_COOKIE || "";
+
+    const cookie =
+      process.env.KAPTURE_COOKIE ||
+      (await getKaptureCookieHeader({
+        loginUrl: process.env.KAPTURE_LOGIN_URL!,
+        username: process.env.KAPTURE_USERNAME!,
+        password: process.env.KAPTURE_PASSWORD!,
+      }));
     if (!cookie) {
       return NextResponse.json(
         { error: "Missing KAPTURE_COOKIE env var" },

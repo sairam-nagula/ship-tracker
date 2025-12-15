@@ -1,65 +1,85 @@
 import { NextResponse } from "next/server";
 import { fetchIslanderFromMTN } from "../islander-ship-location/route";
 
-type ParadiseWeather = {
+type IslanderWeather = {
   name: string;
   lat: number;
   lng: number;
   lastUpdated: string;
-  weatherTempC: number | null;
+  weatherTempF: number | null;
   weatherDescription: string | null;
-  weatherIcon: string | null;
+  weatherIconLocal: string | null;
+  weatherId: number | null;
 };
+
+function mapOpenWeatherIdToLocalIcon(id: number | null): string | null {
+  if (id == null) return null;
+
+  if (id >= 200 && id <= 232) return "/thunderstorm.png";
+  if (id >= 300 && id <= 321) return "/partly-cloudy-rain.png";
+
+  if (id >= 500 && id <= 531) {
+    if (id >= 520) return "/cloudy-rain.png";
+    return "/rain.png";
+  }
+
+  if (id >= 600 && id <= 622) return "/windy.png";
+  if (id >= 701 && id <= 781) return "/windy.png";
+
+  if (id === 800) return "/sunny.png";
+
+  if (id === 801 || id === 802) return "/partly-cloudy.png";
+  if (id === 803 || id === 804) return "/cloudy.png";
+
+  return "/cloudy.png";
+}
 
 export async function GET() {
   try {
     const base = await fetchIslanderFromMTN();
     const weatherKey = process.env.OPENWEATHER_API_KEY;
 
-    let weatherTempC: number | null = null;
+    let weatherTempF: number | null = null;
     let weatherDescription: string | null = null;
-    let weatherIcon: string | null = null;
+    let weatherId: number | null = null;
+    let weatherIconLocal: string | null = null;
 
     if (weatherKey) {
-      try {
-        const wRes = await fetch(
-          `https://api.openweathermap.org/data/2.5/weather?lat=${base.lat}&lon=${base.lng}&appid=${weatherKey}&units=imperial`,
-          { cache: "no-store" }
-        );
+      const wRes = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${base.lat}&lon=${base.lng}&appid=${weatherKey}&units=imperial`,
+        { cache: "no-store" }
+      );
 
-        if (wRes.ok) {
-          const wJson: any = await wRes.json();
-          const temp = wJson?.main?.temp;
-          const desc = wJson?.weather?.[0]?.description;
-          const icon = wJson?.weather?.[0]?.icon;
+      if (wRes.ok) {
+        const wJson: any = await wRes.json();
 
-          weatherTempC = typeof temp === "number" ? temp : null;
-          weatherDescription = typeof desc === "string" ? desc : null;
-          weatherIcon = typeof icon === "string" ? icon : null;
-        } else {
-          console.warn("OpenWeather error:", wRes.status, wRes.statusText);
-        }
-      } catch (wErr) {
-        console.warn("OpenWeather fetch failed:", wErr);
+        const temp = wJson?.main?.temp;
+        const desc = wJson?.weather?.[0]?.description;
+        const id = wJson?.weather?.[0]?.id;
+
+        weatherTempF = typeof temp === "number" ? temp : null;
+        weatherDescription = typeof desc === "string" ? desc : null;
+        weatherId = typeof id === "number" ? id : null;
+        weatherIconLocal = mapOpenWeatherIdToLocalIcon(weatherId);
       }
     }
 
-    const payload: ParadiseWeather = {
+    const payload: IslanderWeather = {
       name: base.name,
       lat: base.lat,
       lng: base.lng,
       lastUpdated: base.lastUpdated,
-      weatherTempC,
+      weatherTempF,
       weatherDescription,
-      weatherIcon,
+      weatherIconLocal,
+      weatherId,
     };
 
     return NextResponse.json(payload, { status: 200 });
   } catch (error: any) {
-    console.error("Error in /api/Islander/islander-weather:", error);
     return NextResponse.json(
       {
-        error: "Failed to get Paradise weather",
+        error: "Failed to get Islander weather",
         details: error?.message ?? "Unknown error",
       },
       { status: 500 }

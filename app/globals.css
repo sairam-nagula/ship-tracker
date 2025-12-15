@@ -855,3 +855,27 @@ line-height: 35px;
 letter-spacing: 0.08em;
 text-transform: uppercase;
 }
+
+
+.ship-info-panel-itin-icon {
+width: 28px;
+height: 28px;
+flex: 0 0 28px;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+
+.ship-info-panel-itin-marker {
+width: 28px;
+height: 28px;
+object-fit: contain;
+display: block;
+}
+
+.ship-info-panel-itin-dot.is-yellow {
+width: 10px;
+height: 10px;
+border-radius: 999px;
+background: var(--ship-info-panel-yellow);
+}

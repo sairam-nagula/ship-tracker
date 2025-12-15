@@ -1,10 +1,14 @@
-// app/api/paradise-itinerary/route.ts
+// app/api/islander-itinerary/route.ts
 import { NextResponse } from "next/server";
 import * as cheerio from "cheerio";
+import { getKaptureCookieHeader } from "@/app/api/Kapture/kapture_auth";
+import { geocodePlace } from "@/app/api/Kapture/geocode";
 
 type ItineraryRow = {
   date: string;
   port: string;
+  lat: number | null;
+  lng: number | null;
 };
 
 const TZ = "America/New_York";
@@ -201,7 +205,14 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
 
-    const cookie = process.env.KAPTURE_COOKIE || "";
+    const cookie =
+      process.env.KAPTURE_COOKIE ||
+      (await getKaptureCookieHeader({
+        loginUrl: process.env.KAPTURE_LOGIN_URL!,
+        username: process.env.KAPTURE_USERNAME!,
+        password: process.env.KAPTURE_PASSWORD!,
+      }));
+
     if (!cookie) {
       return NextResponse.json(
         { error: "Missing KAPTURE_COOKIE env var" },
@@ -247,20 +258,18 @@ export async function GET(req: Request) {
     });
 
     if (!res.ok) {
-      throw new Error(
-        `Kapture itinerary error: ${res.status} ${res.statusText}`
-      );
+      throw new Error(`Kapture itinerary error: ${res.status} ${res.statusText}`);
     }
 
     const html = await res.text();
     const $ = cheerio.load(html);
 
-    const rows: ItineraryRow[] = [];
-
     const table = $("table.table.table-bordered");
     if (!table.length) {
       throw new Error("No itinerary table found");
     }
+
+    const rowsNoGeo: Array<{ date: string; port: string }> = [];
 
     table
       .find("tr")
@@ -272,13 +281,9 @@ export async function GET(req: Request) {
         const date = $(tds[0]).text().replace(/\s+/g, " ").trim();
         const portName = $(tds[1]).text().replace(/\s+/g, " ").trim();
         const arrive =
-          tds.length >= 4
-            ? $(tds[3]).text().replace(/\s+/g, " ").trim()
-            : "";
+          tds.length >= 4 ? $(tds[3]).text().replace(/\s+/g, " ").trim() : "";
         const depart =
-          tds.length >= 5
-            ? $(tds[4]).text().replace(/\s+/g, " ").trim()
-            : "";
+          tds.length >= 5 ? $(tds[4]).text().replace(/\s+/g, " ").trim() : "";
 
         if (!date || !portName) return;
 
@@ -287,11 +292,30 @@ export async function GET(req: Request) {
             ? ` ${arrive || ""}${arrive && depart ? " - " : ""}${depart || ""}`
             : "";
 
-        rows.push({
+        rowsNoGeo.push({
           date: `${date}${timePart}`.trim(),
           port: portName,
         });
       });
+
+    const uniquePorts = Array.from(new Set(rowsNoGeo.map((r) => r.port)));
+
+    const portToLatLng = new Map<string, { lat: number; lng: number }>();
+
+    for (const port of uniquePorts) {
+      const ll = await geocodePlace(port);
+      if (ll) portToLatLng.set(port, ll);
+    }
+
+    const rows: ItineraryRow[] = rowsNoGeo.map((r) => {
+      const ll = portToLatLng.get(r.port) ?? null;
+      return {
+        date: r.date,
+        port: r.port,
+        lat: ll ? ll.lat : null,
+        lng: ll ? ll.lng : null,
+      };
+    });
 
     const sailingStartMDY = rows.length
       ? parseMDY(rows[0].date.split(" ")[0])
@@ -309,9 +333,7 @@ export async function GET(req: Request) {
       sailingStartMDY != null ? daysBetweenUTC(todayNY, sailingStartMDY) : null;
 
     const currentDayIndex =
-      rawIndex == null
-        ? null
-        : Math.max(0, Math.min(rows.length - 1, rawIndex));
+      rawIndex == null ? null : Math.max(0, Math.min(rows.length - 1, rawIndex));
 
     return NextResponse.json(
       { rows, sailingId, sailingStartDateISO, currentDayIndex },
