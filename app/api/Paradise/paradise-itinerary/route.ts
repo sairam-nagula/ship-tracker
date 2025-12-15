@@ -7,22 +7,249 @@ type ItineraryRow = {
   port: string;
 };
 
-export async function GET() {
-  try {
-    const url =
-      "https://www.cruisemapper.com/ships/Margaritaville-Paradise-562?tab=itinerary";
+const TZ = "America/New_York";
 
-    const res = await fetch(url, {
+function getNowNY(): { y: number; m: number; d: number } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const y = Number(parts.find((p) => p.type === "year")?.value);
+  const m = Number(parts.find((p) => p.type === "month")?.value);
+  const d = Number(parts.find((p) => p.type === "day")?.value);
+
+  return { y, m, d };
+}
+
+function monthNameToNum(mon: string): number | null {
+  const map: Record<string, number> = {
+    jan: 1,
+    feb: 2,
+    mar: 3,
+    apr: 4,
+    may: 5,
+    jun: 6,
+    jul: 7,
+    aug: 8,
+    sep: 9,
+    oct: 10,
+    nov: 11,
+    dec: 12,
+  };
+  const key = mon.trim().toLowerCase().slice(0, 3);
+  return map[key] ?? null;
+}
+
+function ymdToKey(y: number, m: number, d: number): number {
+  return y * 10000 + m * 100 + d;
+}
+
+function parseSailingRangeText(
+  text: string,
+  calYear: number,
+  calMonth: number
+): { startYMD: number; endYMD: number } | null {
+  const raw = (text || "").replace(/\s+/g, " ").trim();
+  if (!raw) return null;
+
+  const m1 =
+    /^(\d{1,2})\s+([A-Za-z]{3})\s*-\s*(\d{1,2})\s+([A-Za-z]{3})$/.exec(raw);
+  if (m1) {
+    const sd = Number(m1[1]);
+    const sm = monthNameToNum(m1[2]);
+    const ed = Number(m1[3]);
+    const em = monthNameToNum(m1[4]);
+    if (!sm || !em) return null;
+
+    let sy = calYear;
+    let ey = calYear;
+
+    if (sm !== calMonth) {
+      if (calMonth === 1 && sm === 12) sy = calYear - 1;
+      else if (calMonth === 12 && sm === 1) sy = calYear + 1;
+    }
+
+    if (em !== calMonth) {
+      if (calMonth === 12 && em === 1) ey = calYear + 1;
+      else if (calMonth === 1 && em === 12) ey = calYear - 1;
+    }
+
+    if (sy === ey && ymdToKey(sy, sm, sd) > ymdToKey(ey, em, ed)) {
+      ey = sy + 1;
+    }
+
+    return {
+      startYMD: ymdToKey(sy, sm, sd),
+      endYMD: ymdToKey(ey, em, ed),
+    };
+  }
+
+  return null;
+}
+
+async function fetchMonthWiseHtml(
+  cookie: string,
+  cruiseId: string,
+  calMonth: number,
+  calYear: number
+): Promise<string> {
+  const url =
+    "https://bahamas.kapturecrm.com/employee/get-cruise-sailing-details-month-wise-ajax";
+
+  const body = new URLSearchParams();
+  body.set("cruise_id", cruiseId);
+  body.set("cal_month", String(calMonth));
+  body.set("cal_year", String(calYear));
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      Accept: "*/*",
+      Origin: "https://bahamas.kapturecrm.com",
+      Referer:
+        "https://bahamas.kapturecrm.com/employee/cruise-sailing-details.html",
+      "X-Requested-With": "XMLHttpRequest",
+      "User-Agent":
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15",
+      Cookie: cookie,
+    },
+    body,
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(`Month-wise API error: ${res.status} ${res.statusText}`);
+  }
+
+  return await res.text();
+}
+
+async function getCurrentSailingId(
+  cookie: string,
+  cruiseId: string
+): Promise<string | null> {
+  const now = getNowNY();
+  const target = ymdToKey(now.y, now.m, now.d);
+
+  const candidates: Array<{ y: number; m: number }> = [
+    { y: now.y, m: now.m },
+    { y: now.m === 1 ? now.y - 1 : now.y, m: now.m === 1 ? 12 : now.m - 1 },
+    { y: now.m === 12 ? now.y + 1 : now.y, m: now.m === 12 ? 1 : now.m + 1 },
+  ];
+
+  for (const c of candidates) {
+    const html = await fetchMonthWiseHtml(cookie, cruiseId, c.m, c.y);
+    const $ = cheerio.load(html);
+
+    const table = $("table.sailing_details_table");
+    if (!table.length) continue;
+
+    let found: string | null = null;
+
+    table.find("tbody tr").each((_, tr) => {
+      const tds = $(tr).find("td");
+      if (tds.length < 3) return;
+
+      const idText = $(tds[0]).text().replace(/\s+/g, " ").trim();
+      const dateText = $(tds[2]).text().replace(/\s+/g, " ").trim();
+
+      const id = /^\d+$/.test(idText) ? idText : null;
+      if (!id) return;
+
+      const range = parseSailingRangeText(dateText, c.y, c.m);
+      if (!range) return;
+
+      if (target >= range.startYMD && target <= range.endYMD) {
+        found = id;
+      }
+    });
+
+    if (found) return found;
+  }
+
+  return null;
+}
+
+function parseMDY(dateStr: string): { y: number; m: number; d: number } | null {
+  const m = /^\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\s*$/.exec(dateStr);
+  if (!m) return null;
+  const mm = Number(m[1]);
+  const dd = Number(m[2]);
+  const yy = Number(m[3]);
+  if (!Number.isFinite(mm) || !Number.isFinite(dd) || !Number.isFinite(yy))
+    return null;
+  return { y: yy, m: mm, d: dd };
+}
+
+function daysBetweenUTC(
+  a: { y: number; m: number; d: number },
+  b: { y: number; m: number; d: number }
+): number {
+  const A = Date.UTC(a.y, a.m - 1, a.d);
+  const B = Date.UTC(b.y, b.m - 1, b.d);
+  return Math.floor((A - B) / 86400000);
+}
+
+export async function GET(req: Request) {
+  try {
+    const itineraryUrl =
+      "https://bahamas.kapturecrm.com/employee/show-itinerary-details-ajax";
+
+    const { searchParams } = new URL(req.url);
+
+    const cookie = process.env.KAPTURE_COOKIE || "";
+    if (!cookie) {
+      return NextResponse.json(
+        { error: "Missing KAPTURE_COOKIE env var" },
+        { status: 500 }
+      );
+    }
+
+    const cruiseId =
+      searchParams.get("cruise_id") || process.env.KAPTURE_CRUISE_ID || "61";
+
+    let sailingId =
+      searchParams.get("sailing_id") || process.env.KAPTURE_SAILING_ID || "";
+
+    if (!sailingId) {
+      const auto = await getCurrentSailingId(cookie, cruiseId);
+      if (!auto) {
+        return NextResponse.json(
+          { error: "Could not determine current sailing_id" },
+          { status: 500 }
+        );
+      }
+      sailingId = auto;
+    }
+
+    const body = new URLSearchParams();
+    body.set("sailing_id", sailingId);
+
+    const res = await fetch(itineraryUrl, {
+      method: "POST",
       headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        Accept: "*/*",
+        Origin: "https://bahamas.kapturecrm.com",
+        Referer:
+          "https://bahamas.kapturecrm.com/employee/cruise-sailing-details.html",
+        "X-Requested-With": "XMLHttpRequest",
         "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Accept: "text/html,application/xhtml+xml",
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15",
+        Cookie: cookie,
       },
+      body,
       cache: "no-store",
     });
 
     if (!res.ok) {
-      throw new Error(`CruiseMapper error: ${res.status} ${res.statusText}`);
+      throw new Error(
+        `Kapture itinerary error: ${res.status} ${res.statusText}`
+      );
     }
 
     const html = await res.text();
@@ -30,22 +257,66 @@ export async function GET() {
 
     const rows: ItineraryRow[] = [];
 
-    // This table is inside: div.cruiseItinerariesCurrent table.table-bordered
-    $("div.cruiseItinerariesCurrent table.table.table-bordered tr")
-      .slice(1) // skip header row
-      .each((_, tr) => {
-        const date = $(tr).find("td.date").text().trim();
-        const portText = $(tr).find("td.text").text().replace(/\s+/g, " ").trim();
+    const table = $("table.table.table-bordered");
+    if (!table.length) {
+      throw new Error("No itinerary table found");
+    }
 
-        if (date && portText) {
-          rows.push({
-            date,
-            port: portText,
-          });
-        }
+    table
+      .find("tr")
+      .slice(1)
+      .each((_, tr) => {
+        const tds = $(tr).find("td");
+        if (tds.length < 2) return;
+
+        const date = $(tds[0]).text().replace(/\s+/g, " ").trim();
+        const portName = $(tds[1]).text().replace(/\s+/g, " ").trim();
+        const arrive =
+          tds.length >= 4
+            ? $(tds[3]).text().replace(/\s+/g, " ").trim()
+            : "";
+        const depart =
+          tds.length >= 5
+            ? $(tds[4]).text().replace(/\s+/g, " ").trim()
+            : "";
+
+        if (!date || !portName) return;
+
+        const timePart =
+          arrive || depart
+            ? ` ${arrive || ""}${arrive && depart ? " - " : ""}${depart || ""}`
+            : "";
+
+        rows.push({
+          date: `${date}${timePart}`.trim(),
+          port: portName,
+        });
       });
 
-    return NextResponse.json({ rows }, { status: 200 });
+    const sailingStartMDY = rows.length
+      ? parseMDY(rows[0].date.split(" ")[0])
+      : null;
+
+    const todayNY = getNowNY();
+
+    const sailingStartDateISO = sailingStartMDY
+      ? `${String(sailingStartMDY.y).padStart(4, "0")}-${String(
+          sailingStartMDY.m
+        ).padStart(2, "0")}-${String(sailingStartMDY.d).padStart(2, "0")}`
+      : null;
+
+    const rawIndex =
+      sailingStartMDY != null ? daysBetweenUTC(todayNY, sailingStartMDY) : null;
+
+    const currentDayIndex =
+      rawIndex == null
+        ? null
+        : Math.max(0, Math.min(rows.length - 1, rawIndex));
+
+    return NextResponse.json(
+      { rows, sailingId, sailingStartDateISO, currentDayIndex },
+      { status: 200 }
+    );
   } catch (err: any) {
     console.error("Error in /api/paradise-itinerary:", err);
     return NextResponse.json(

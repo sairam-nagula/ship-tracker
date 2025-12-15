@@ -18,11 +18,6 @@ type Props = {
   cruisenewsEndpoint: string;
 };
 
-type ParsedRange = {
-  start: Date | null;
-  end: Date | null;
-};
-
 type WeatherState = {
   weatherTempC: number | null;
   weatherDescription: string | null;
@@ -33,6 +28,102 @@ type Quote = {
   text: string;
   author?: string;
 };
+
+type ParsedRange = {
+  start: Date | null;
+  end: Date | null;
+};
+
+function parseTime12hToHM(t: string): { h: number; m: number } | null {
+  const m = /^\s*(\d{1,2})(?::(\d{2}))?\s*(AM|PM)\s*$/i.exec(t);
+  if (!m) return null;
+
+  let h = Number(m[1]);
+  const min = m[2] ? Number(m[2]) : 0;
+  const ampm = m[3].toUpperCase();
+
+  if (!Number.isFinite(h) || !Number.isFinite(min)) return null;
+  if (h < 1 || h > 12 || min < 0 || min > 59) return null;
+
+  if (ampm === "AM") {
+    if (h === 12) h = 0;
+  } else {
+    if (h !== 12) h += 12;
+  }
+
+  return { h, m: min };
+}
+
+function buildDate(y: number, mon1to12: number, d: number, time?: string): Date | null {
+  const dt = new Date(y, mon1to12 - 1, d, 0, 0, 0, 0);
+
+  if (time && time.trim()) {
+    const hm = parseTime12hToHM(time);
+    if (!hm) return null;
+    dt.setHours(hm.h, hm.m, 0, 0);
+  }
+
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+function parseDateRange(label: string, year: number): ParsedRange {
+  const raw = (label || "").replace(/\s+/g, " ").trim();
+  if (!raw) return { start: null, end: null };
+
+  // Kapture: MM/DD/YYYY [time] or MM/DD/YYYY [time - time]
+  const kap = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(.*))?$/.exec(raw);
+  if (kap) {
+    const mon = Number(kap[1]);
+    const day = Number(kap[2]);
+    const y = Number(kap[3]);
+    const timePart = (kap[4] || "").trim();
+
+    if (!Number.isFinite(mon) || !Number.isFinite(day) || !Number.isFinite(y)) {
+      return { start: null, end: null };
+    }
+
+    if (!timePart) {
+      const start = buildDate(y, mon, day);
+      return { start, end: null };
+    }
+
+    if (timePart.includes("-")) {
+      const [startStr, endStr] = timePart.split("-").map((s) => s.trim());
+      const start = buildDate(y, mon, day, startStr);
+      const end = buildDate(y, mon, day, endStr);
+      return { start, end };
+    }
+
+    const start = buildDate(y, mon, day, timePart);
+    return { start, end: null };
+  }
+
+  // CruiseMapper: "21 Nov 16:00" or "23 Nov 07:00 - 16:30"
+  const cm = /^(\d{1,2})\s+([A-Za-z]{3})\s+(.+)$/.exec(raw);
+  if (!cm) return { start: null, end: null };
+
+  const [, dayStr, monthStr, timePart] = cm;
+  const base = `${dayStr} ${monthStr} ${year}`;
+
+  if (timePart.includes("-")) {
+    const [startStr, endStr] = timePart.split("-").map((s) => s.trim());
+    const start = new Date(`${base} ${startStr}`);
+    const end = new Date(`${base} ${endStr}`);
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return { start: null, end: null };
+    }
+
+    return { start, end };
+  }
+
+  const start = new Date(`${base} ${timePart.trim()}`);
+  if (Number.isNaN(start.getTime())) return { start: null, end: null };
+
+  return { start, end: null };
+}
+
+
 
 // Map ship label -> correct weather API endpoint
 function getWeatherEndpoint(shipLabel: string): string | null {
@@ -71,36 +162,6 @@ function ktsToMph(kts: number): number {
   return kts * 1.15078;
 }
 
-// Convert all HH:MM substrings into 12-hour format
-function formatDateLabelTo12h(label: string): string {
-  return label.replace(/\b(\d{1,2}:\d{2})\b/g, (match) => to12Hour(match));
-}
-
-// Parse itinerary date ranges ("21 Nov 16:00" or "23 Nov 07:00 - 16:30")
-function parseDateRange(label: string, year: number): ParsedRange {
-  const match = /^(\d{1,2})\s+([A-Za-z]{3})\s+(.+)$/.exec(label);
-  if (!match) return { start: null, end: null };
-
-  const [, dayStr, monthStr, timePart] = match;
-  const base = `${dayStr} ${monthStr} ${year}`;
-
-  if (timePart.includes("-")) {
-    const [startStr, endStr] = timePart.split("-").map((s) => s.trim());
-    const start = new Date(`${base} ${startStr}`);
-    const end = new Date(`${base} ${endStr}`);
-
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-      return { start: null, end: null };
-    }
-
-    return { start, end };
-  }
-
-  const start = new Date(`${base} ${timePart.trim()}`);
-  if (Number.isNaN(start.getTime())) return { start: null, end: null };
-
-  return { start, end: null };
-}
 
 export function ShipInfoPanel({
   ship,
@@ -273,6 +334,11 @@ export function ShipInfoPanel({
   const description =
     weather?.weatherDescription ?? ship?.weatherDescription ?? null;
 
+  const startIdx =
+    itinerary && itinerary.length > 3 && activeIndex != null
+      ? Math.max(0, Math.min(activeIndex, itinerary.length - 3))
+      : 0;
+
   // ShipInfoPanel.tsx (JSX return only)
 
 return (
@@ -296,26 +362,51 @@ return (
 
           {!itineraryLoading && (itinerary?.length ?? 0) > 0 && (
             <>
-              {(itinerary ?? []).slice(0, 3).map((row, i) => {
-                const isActive = activeIndex === i;
-                const dayNum = i + 1;
+              {(itinerary ?? []).slice(startIdx, startIdx + 3).map((row, i) => {
+                const actualIndex = startIdx + i;
+                const hasActive = activeIndex != null;
+                const isActive = activeIndex === actualIndex;
+                const isFaded = hasActive && !isActive;
+                const dayNum = actualIndex + 1;
 
                 return (
                   <div
-                    key={`${row.date}-${row.port}-${i}`}
-                    className={`ship-info-panel-itin-row ${
-                      isActive ? "is-active" : ""
+                    key={`${row.date}-${row.port}-${actualIndex}`}
+                    className={`ship-info-panel-itin-row ${isActive ? "is-active" : ""} ${
+                      isFaded ? "is-faded" : ""
                     }`}
+                    style={{
+                      opacity: isFaded ? 0.35 : 1,
+                      filter: isFaded ? "saturate(0.85)" : "none",
+                      transition:
+                        "opacity 180ms ease, transform 180ms ease, filter 180ms ease",
+                    }}
                   >
-                    <div className="ship-info-panel-itin-dot" />
+                    {isActive ? (
+                      <img
+                        src="/location-marker-white-smaller.png"
+                        alt=""
+                        className="ship-info-panel-itin-marker"
+                        style={{ width: 28, height: 28, objectFit: "contain" }}
+                      />
+                    ) : (
+                      <div
+                        className="ship-info-panel-itin-dot is-yellow"
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: 999,
+                          background: "var(--ship-info-panel-yellow)",
+                          flex: "0 0 auto",
+                          opacity: 1,
+                        }}
+                      />
+                    )}
+
                     <div className="ship-info-panel-itin-text">
-                      <span className="ship-info-panel-itin-day">
-                        Day {dayNum}
-                      </span>
+                      <span className="ship-info-panel-itin-day">Day {dayNum}</span>
                       <span className="ship-info-panel-itin-sep">|</span>
-                      <span className="ship-info-panel-itin-port">
-                        {row.port}
-                      </span>
+                      <span className="ship-info-panel-itin-port">{row.port}</span>
                     </div>
                   </div>
                 );
