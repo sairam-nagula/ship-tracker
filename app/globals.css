@@ -81,7 +81,7 @@ html, body {
 .page-root {
   display: grid;
   grid-template-columns: 4fr 7fr; /* was 3fr 4fr */ 
-  
+
   height: 100vh;
   background: var(--bg-panel);
   }
@@ -312,13 +312,14 @@ html, body {
 
 .map-watermark-logo {
   position: absolute;
-  right: 28px;
-  bottom: 50px;  
   width: 270px;
   height: auto;
   opacity: 0.95;
   pointer-events: none;
   z-index: 5;
+  right: 50px;
+  bottom: 70px; 
+
 }
 
 /* ==========================================================================  
@@ -917,4 +918,206 @@ background: var(--ship-info-panel-yellow);
   grid-template-columns: 1fr 1fr;
   column-gap: 140px;
   row-gap: 54px;
+}
+
+
+/*
+========================================================================
+Login Page Styles
+========================================================================
+
+*/
+.auth-root {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: linear-gradient(180deg, var(--ship-info-panel-mid), var(--ship-info-panel-deep));
+  font-family: "Brandon Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+}
+
+.auth-wrap {
+  width: min(980px, 100%);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+.auth-header {
+  text-align: center;
+}
+
+.auth-brand {
+  margin: 0;
+  font-family: "Silent Asia", cursive;
+  font-size: 58px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+.auth-sub {
+  margin: 10px 0 0;
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.04em;
+}
+
+.auth-card {
+  width: min(520px, 100%);
+  margin: 0 auto;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(3, 24, 49, 0.9);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.auth-card-body {
+  padding: 24px;
+}
+
+.auth-card-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.auth-kicker {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 6px;
+}
+
+.auth-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.1;
+}
+
+.auth-pill {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(1, 172, 192, 0.14);
+  border: 1px solid rgba(1, 172, 192, 0.35);
+  color: rgba(229, 231, 235, 0.95);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.auth-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.auth-input {
+  width: 100%;
+  padding: 14px 14px;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(2, 22, 39, 0.65);
+  color: rgba(255, 255, 255, 0.92);
+  outline: none;
+  font-size: 16px;
+}
+
+.auth-input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.auth-input:focus {
+  border-color: rgba(1, 172, 192, 0.55);
+  box-shadow: 0 0 0 3px rgba(1, 172, 192, 0.18);
+}
+
+.auth-error {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  padding: 12px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(252, 165, 165, 0.35);
+  background: rgba(127, 29, 29, 0.25);
+  color: #fecaca;
+  font-size: 14px;
+}
+
+.auth-btn {
+  width: 100%;
+  padding: 14px 14px;
+  border-radius: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: var(--ship-info-panel-yellow);
+  color: #00407a;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.auth-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+}
+
+.auth-btn.is-disabled,
+.auth-btn:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.55);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.auth-next {
+  margin-top: 14px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 13px;
+}
+
+.auth-next-path {
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 600;
+}
+
+.auth-footer {
+  background: var(--ship-info-panel-yellow);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 14px;
+  text-align: center;
+}
+
+.auth-footer-text {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #00407a;
+}
+
+.auth-logo {
+  width: 320px;
+  max-width: 85%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
 }

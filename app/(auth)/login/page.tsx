@@ -1,6 +1,7 @@
+// app/login/page.tsx
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { auth } from "@/lib/firebase";
@@ -19,13 +20,19 @@ function LoginInner() {
     setErr(null);
   }, [email, password]);
 
+  const isDisabled = useMemo(() => {
+    return loading || !email.trim() || !password.trim();
+  }, [loading, email, password]);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isDisabled) return;
+
     setLoading(true);
     setErr(null);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, email.trim(), password);
       router.replace(nextPath);
     } catch (e: any) {
       setErr(e?.message || "Login failed");
@@ -35,48 +42,70 @@ function LoginInner() {
   }
 
   return (
-    <main style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
-      <form
-        onSubmit={onSubmit}
-        style={{
-          width: 380,
-          padding: 24,
-          borderRadius: 12,
-          background: "rgba(0,0,0,0.25)",
-        }}
-      >
-        <h1 style={{ marginBottom: 16, fontSize: 24, fontWeight: 700 }}>
-          Sign in
-        </h1>
+    <main className="auth-root">
+      <div className="auth-wrap">
+        <header className="auth-header">
+          <header className="auth-header">
+            <img
+                src="/MVASlogo.png"
+                alt="Margaritaville At Sea"
+                className="auth-logo"
+            />
+            </header>
 
-        <label style={{ display: "block", marginBottom: 8 }}>Email</label>
-        <input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          type="email"
-          style={{ width: "100%", padding: 10, marginBottom: 12, borderRadius: 8 }}
-          autoComplete="email"
-        />
+          <p className="auth-sub">Ship Tracker</p>
+        </header>
 
-        <label style={{ display: "block", marginBottom: 8 }}>Password</label>
-        <input
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          type="password"
-          style={{ width: "100%", padding: 10, marginBottom: 12, borderRadius: 8 }}
-          autoComplete="current-password"
-        />
+        <form onSubmit={onSubmit} className="auth-card">
+          <div className="auth-card-body">
+            <div className="auth-card-top">
+              <div>
+                <div className="auth-title">Sign in</div>
+              </div>
+              <div className="auth-pill">Secure</div>
+            </div>
 
-        {err && <div style={{ marginBottom: 12 }}>{err}</div>}
+            <label className="auth-label">Email</label>
+            <input
+              className="auth-input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              type="email"
+              autoComplete="email"
+              placeholder="name@company.com"
+            />
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ width: "100%", padding: 12, borderRadius: 10, fontWeight: 700 }}
-        >
-          {loading ? "Signing in..." : "Login"}
-        </button>
-      </form>
+            <label className="auth-label">Password</label>
+            <input
+              className="auth-input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type="password"
+              autoComplete="current-password"
+              placeholder="••••••••"
+            />
+
+            {err && <div className="auth-error">{err}</div>}
+
+            <button
+              type="submit"
+              disabled={isDisabled}
+              className={`auth-btn ${isDisabled ? "is-disabled" : ""}`}
+            >
+              {loading ? "Signing in..." : "Login"}
+            </button>
+
+            
+          </div>
+
+          <div className="auth-footer">
+            <div className="auth-footer-text">
+            © {new Date().getFullYear()} Margaritaville at Sea, LLC. All rights reserved.
+            </div>
+
+          </div>
+        </form>
+      </div>
     </main>
   );
 }

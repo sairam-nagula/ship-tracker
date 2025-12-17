@@ -1,14 +1,14 @@
-// app/api/paradise-itinerary/route.ts
+// app/api/islander-itinerary/route.ts
 import { NextResponse } from "next/server";
 import * as cheerio from "cheerio";
 import { getKaptureCookieHeader } from "@/app/api/Kapture/kapture_auth";
-import { getCachedKaptureCookie } from "@/app/api/Kapture/kapture_cookiecache";
-
-
+import { geocodePlace } from "@/app/api/Kapture/geocode";
 
 type ItineraryRow = {
   date: string;
   port: string;
+  lat: number | null;
+  lng: number | null;
 };
 
 const TZ = "America/New_York";
@@ -198,6 +198,78 @@ function daysBetweenUTC(
   return Math.floor((A - B) / 86400000);
 }
 
+/* =======================
+   ✅ 12-hour in-memory cookie cache
+   ======================= */
+
+type CookieCache = {
+  cookie: string;
+  expiresAt: number;
+};
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __KAPTURE_COOKIE_CACHE__: CookieCache | undefined;
+}
+
+const COOKIE_TTL_MS = 12 * 60 * 60 * 1000;
+
+async function getCachedKaptureCookie(): Promise<string> {
+  const now = Date.now();
+  const cached = globalThis.__KAPTURE_COOKIE_CACHE__;
+  if (cached && cached.cookie && cached.expiresAt > now) {
+    return cached.cookie;
+  }
+
+  const cookie =
+    process.env.KAPTURE_COOKIE ||
+    (await getKaptureCookieHeader({
+      loginUrl: process.env.KAPTURE_LOGIN_URL!,
+      username: process.env.KAPTURE_USERNAME!,
+      password: process.env.KAPTURE_PASSWORD!,
+    }));
+
+  if (!cookie) throw new Error("Unable to obtain Kapture cookie");
+
+  globalThis.__KAPTURE_COOKIE_CACHE__ = {
+    cookie,
+    expiresAt: now + COOKIE_TTL_MS,
+  };
+
+  return cookie;
+}
+
+async function fetchWithKaptureCookie(
+  url: string,
+  init: RequestInit,
+  cookie: string
+): Promise<Response> {
+  const res = await fetch(url, {
+    ...init,
+    headers: {
+      ...(init.headers || {}),
+      Cookie: cookie,
+    },
+    cache: "no-store",
+  });
+
+  // If cookie expired server-side, refresh once and retry
+  if (res.status === 401 || res.status === 403) {
+    globalThis.__KAPTURE_COOKIE_CACHE__ = undefined;
+    const fresh = await getCachedKaptureCookie();
+    return await fetch(url, {
+      ...init,
+      headers: {
+        ...(init.headers || {}),
+        Cookie: fresh,
+      },
+      cache: "no-store",
+    });
+  }
+
+  return res;
+}
+
 export async function GET(req: Request) {
   try {
     const itineraryUrl =
@@ -205,20 +277,7 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
 
-
-    const cookie =
-      process.env.KAPTURE_COOKIE ||
-      (await getKaptureCookieHeader({
-        loginUrl: process.env.KAPTURE_LOGIN_URL!,
-        username: process.env.KAPTURE_USERNAME!,
-        password: process.env.KAPTURE_PASSWORD!,
-      }));
-    if (!cookie) {
-      return NextResponse.json(
-        { error: "Missing KAPTURE_COOKIE env var" },
-        { status: 500 }
-      );
-    }
+    const cookie = await getCachedKaptureCookie();
 
     const cruiseId =
       searchParams.get("cruise_id") || process.env.KAPTURE_CRUISE_ID || "61";
@@ -240,38 +299,38 @@ export async function GET(req: Request) {
     const body = new URLSearchParams();
     body.set("sailing_id", sailingId);
 
-    const res = await fetch(itineraryUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        Accept: "*/*",
-        Origin: "https://bahamas.kapturecrm.com",
-        Referer:
-          "https://bahamas.kapturecrm.com/employee/cruise-sailing-details.html",
-        "X-Requested-With": "XMLHttpRequest",
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15",
-        Cookie: cookie,
+    const res = await fetchWithKaptureCookie(
+      itineraryUrl,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          Accept: "*/*",
+          Origin: "https://bahamas.kapturecrm.com",
+          Referer:
+            "https://bahamas.kapturecrm.com/employee/cruise-sailing-details.html",
+          "X-Requested-With": "XMLHttpRequest",
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15",
+        },
+        body,
       },
-      body,
-      cache: "no-store",
-    });
+      cookie
+    );
 
     if (!res.ok) {
-      throw new Error(
-        `Kapture itinerary error: ${res.status} ${res.statusText}`
-      );
+      throw new Error(`Kapture itinerary error: ${res.status} ${res.statusText}`);
     }
 
     const html = await res.text();
     const $ = cheerio.load(html);
 
-    const rows: ItineraryRow[] = [];
-
     const table = $("table.table.table-bordered");
     if (!table.length) {
       throw new Error("No itinerary table found");
     }
+
+    const rowsNoGeo: Array<{ date: string; port: string }> = [];
 
     table
       .find("tr")
@@ -283,13 +342,9 @@ export async function GET(req: Request) {
         const date = $(tds[0]).text().replace(/\s+/g, " ").trim();
         const portName = $(tds[1]).text().replace(/\s+/g, " ").trim();
         const arrive =
-          tds.length >= 4
-            ? $(tds[3]).text().replace(/\s+/g, " ").trim()
-            : "";
+          tds.length >= 4 ? $(tds[3]).text().replace(/\s+/g, " ").trim() : "";
         const depart =
-          tds.length >= 5
-            ? $(tds[4]).text().replace(/\s+/g, " ").trim()
-            : "";
+          tds.length >= 5 ? $(tds[4]).text().replace(/\s+/g, " ").trim() : "";
 
         if (!date || !portName) return;
 
@@ -298,11 +353,30 @@ export async function GET(req: Request) {
             ? ` ${arrive || ""}${arrive && depart ? " - " : ""}${depart || ""}`
             : "";
 
-        rows.push({
+        rowsNoGeo.push({
           date: `${date}${timePart}`.trim(),
           port: portName,
         });
       });
+
+    const uniquePorts = Array.from(new Set(rowsNoGeo.map((r) => r.port)));
+
+    const portToLatLng = new Map<string, { lat: number; lng: number }>();
+
+    for (const port of uniquePorts) {
+      const ll = await geocodePlace(port);
+      if (ll) portToLatLng.set(port, ll);
+    }
+
+    const rows: ItineraryRow[] = rowsNoGeo.map((r) => {
+      const ll = portToLatLng.get(r.port) ?? null;
+      return {
+        date: r.date,
+        port: r.port,
+        lat: ll ? ll.lat : null,
+        lng: ll ? ll.lng : null,
+      };
+    });
 
     const sailingStartMDY = rows.length
       ? parseMDY(rows[0].date.split(" ")[0])
@@ -320,16 +394,14 @@ export async function GET(req: Request) {
       sailingStartMDY != null ? daysBetweenUTC(todayNY, sailingStartMDY) : null;
 
     const currentDayIndex =
-      rawIndex == null
-        ? null
-        : Math.max(0, Math.min(rows.length - 1, rawIndex));
+      rawIndex == null ? null : Math.max(0, Math.min(rows.length - 1, rawIndex));
 
     return NextResponse.json(
       { rows, sailingId, sailingStartDateISO, currentDayIndex },
       { status: 200 }
     );
   } catch (err: any) {
-    console.error("Error in /api/paradise-itinerary:", err);
+    console.error("Error in /api/islander-itinerary:", err);
     return NextResponse.json(
       {
         error: "Failed to load itinerary",

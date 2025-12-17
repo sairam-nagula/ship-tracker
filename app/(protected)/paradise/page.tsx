@@ -15,12 +15,13 @@ export default function ParadisePage() {
         ship={ship}
         error={error}
         logoSrc="/MVAS_Paradise Logo.png"
-        heroSrc="/paradise.jpg" 
+        heroSrc="/paradise.png" 
         shipLabel="MVAS Paradise"
         itineraryEndpoint="/api/Paradise/paradise-itinerary"
         cruisenewsEndpoint="/Paradise-cruisenews.png"
       />
-      <ShipMap ship={ship} track={track} error={error} />
+      <ShipMap ship={ship} error={error} track={track} itineraryEndpoint="/api/Paradise/paradise-itinerary" />
+
     </main>
   );
 }
