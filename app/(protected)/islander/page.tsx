@@ -1,6 +1,8 @@
 //app/(protected)/islander/page.tsx
 "use client";
 
+export const runtime = "nodejs";
+
 import { ShipInfoPanel } from "../../components/ShipInfoPanel";
 import { ShipMap } from "../../components/ShipMap";
 import { useShipLocation } from "../../components/useShipLocation";

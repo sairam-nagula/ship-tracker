@@ -1,11 +1,15 @@
 // app/api/Kapture/kapture_auth.ts
-import { chromium } from "playwright";
+import { chromium as playwrightChromium } from "playwright-core";
+import chromium from "@sparticuz/chromium";
 
 type GetKaptureCookieArgs = {
-  loginUrl: string; // use: "https://bahamas.kapturecrm.com/employee/index.html"
+  loginUrl: string;
   username: string;
   password: string;
 };
+
+const WINDOWS_CHROME_PATH =
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
 
 function cookiesToHeader(cookies: Array<{ name: string; value: string }>) {
   return cookies
@@ -19,25 +23,39 @@ export async function getKaptureCookieHeader({
   username,
   password,
 }: GetKaptureCookieArgs): Promise<string> {
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext();
+  const isServerless = !!process.env.VERCEL || process.platform === "linux";
+
+  const browser = isServerless
+    ? await playwrightChromium.launch({
+        args: chromium.args,
+        executablePath: await chromium.executablePath(),
+        headless: true,
+      })
+    : await playwrightChromium.launch({
+        executablePath: WINDOWS_CHROME_PATH,
+        headless: true,
+      });
+
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 720 },
+    ignoreHTTPSErrors: true,
+    userAgent:
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  });
+
   const page = await context.newPage();
 
   try {
-    // Match your working Python flow: go to index.html
     await page.goto(loginUrl, { waitUntil: "domcontentloaded" });
 
-    // Match Python selectors/steps:
-    // fill_input_field_or_select_option(page, "input[id=username_]", USERNAME)
     await page.locator('input[id="username_"]').fill(username);
-
-    // page.get_by_role("textbox", name="Password").fill(PASSWORD)
     await page.getByRole("textbox", { name: "Password" }).fill(password);
 
-    // page.get_by_role("button", name="Login").click(timeout=15000)
-    await page.getByRole("button", { name: "Login" }).click({ timeout: 15000 });
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: "domcontentloaded" }).catch(() => null),
+      page.getByRole("button", { name: "Login" }).click({ timeout: 15000 }),
+    ]);
 
-    // Optional: wait a moment for session cookies to be set (Python didn’t wait, but TS often benefits)
     await page.waitForLoadState("networkidle").catch(() => null);
 
     const cookies = await context.cookies();
