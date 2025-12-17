@@ -547,7 +547,9 @@ body {
 --ship-info-panel-white: rgba(255, 255, 255, 0.95);
 --ship-info-panel-yellow: #f2d24b;
 --ship-info-panel-divider: rgba(255, 255, 255, 0.52);
---ship-info-panel-gutter: 18px;
+--ship-info-panel-gutter: 88px;
+--ship-info-panel-itin-indent: 38px;
+
 }
 
 .ship-info-panel-root {
@@ -756,19 +758,7 @@ color: rgba(0, 0, 0, 0.85);
 font-weight: 700;
 }
 
-.ship-info-panel-qr-strip {
-flex-shrink: 0;
-margin: 0 -18px;
-background-image: url("/cruise-news-background.png");
-background-size: cover;
-background-position: center;
-background-repeat: no-repeat;
-padding: 18px;
-display: grid;
-grid-template-columns: 160px 1fr;
-gap: 18px;
-justify-content: center; 
-}
+
 
 
 
@@ -783,6 +773,7 @@ transform: translateX(100px);
 .ship-info-panel-qr-img-wrap {
 display: grid;
 place-items: center;
+
 }
 
 .ship-info-panel-qr-copy {
@@ -1121,4 +1112,93 @@ Login Page Styles
   height: auto;
   display: block;
   margin: 0 auto;
+}
+
+
+/* REPLACE these blocks in globals.css */
+
+/* 1) HERO CONTENT: stop pushing it to the right */
+.ship-info-panel-hero-content {
+  position: absolute;
+  left: var(--ship-info-panel-gutter);
+  bottom: 18px;
+  z-index: 2;
+}
+
+/* 2) WEATHER BAR: remove the big side margins + center hacks */
+.ship-info-panel-weather-bar {
+  border-radius: 0;
+  border: none;
+  padding: 14px var(--ship-info-panel-gutter);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0 10px;
+  border-top: 1px solid var(--ship-info-panel-divider);
+  border-bottom: 1px solid var(--ship-info-panel-divider);
+}
+
+.ship-info-panel-weather-left {
+  width: auto;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0;
+}
+
+.ship-info-panel-weather-icon {
+  width: 44px;
+  height: 44px; 
+  object-fit: contain;
+  margin-left: 0;
+}
+
+.ship-info-panel-weather-text {
+  margin-left: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 14px;
+}
+
+/* 3) STATS: remove centering + huge column gap so it lines up left */
+.ship-info-panel-stats-2x2 {
+  width: auto;
+  margin: 18px 0 14px;
+  padding: 0 var(--ship-info-panel-gutter);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 40px;
+  row-gap: 54px;
+}
+
+/* 4) QR STRIP: remove translateX offsets and keep everything left-aligned */
+.ship-info-panel-qr-strip {
+  flex-shrink: 0;
+  margin: 0 -18px;
+  background-image: url("/cruise-news-background.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  padding: 18px var(--ship-info-panel-gutter);
+  display: grid;
+  grid-template-columns: 140px 1fr; 
+  gap: 18px;
+  justify-content: start;
+  align-items: center;
+  padding-left: calc(var(--ship-info-panel-gutter) + 18px); 
+  padding-right: var(--ship-info-panel-gutter);
+}
+
+.ship-info-panel-qr-box {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  transform: none;
+}
+
+.ship-info-panel-qr-title,
+.ship-info-panel-qr-title.big {
+  transform: none;
 }
