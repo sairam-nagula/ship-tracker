@@ -2,7 +2,7 @@
 
 import { GoogleMap, MarkerF, PolylineF } from "@react-google-maps/api";
 import { useMemo, useState, useEffect } from "react";
-import type { ShipLocation } from "./useShipLocation";
+import type { ShipLocation } from "../components/useShipLocation";
 
 export type ShipTrackPoint = {
   lat: number;

@@ -1,3 +1,4 @@
+// app/components/ShipInfoPanel.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -477,7 +478,7 @@ return (
 
     <div className="ship-info-panel-yellow-banner">
       <div className="ship-info-panel-yellow-text">
-        Current Ship Time:{" "}
+        CURRENT SHIP TIME:{" "}
         {new Date().toLocaleTimeString("en-US", {
           timeZone: "America/New_York",
           hour: "numeric",

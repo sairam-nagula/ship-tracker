@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { HomeShipMap } from "./components/HomeShipMap";
-import { useShipLocation } from "./components/useShipLocation";
-import { useShipTrack } from "./components/useShipTrack";
-import { useGoogleMapsLoader } from "./components/useGoogleMapsLoader";
+import { HomeShipMap } from "./HomeShipMap";
+import { useShipLocation } from "../components/useShipLocation";
+import { useShipTrack } from "../components/useShipTrack";
+import { useGoogleMapsLoader } from "../components/useGoogleMapsLoader";
 
 export default function HomePage() {
   const { isLoaded } = useGoogleMapsLoader();

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getMtnToken } from "@/app/api/MTN/mtn_token";   // ✅ NEW IMPORT
+import { getMtnToken } from "@/app/api/MTN/mtn_token";  
 
 type ShipLocation = {
   name: string;

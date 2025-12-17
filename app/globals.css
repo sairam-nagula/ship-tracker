@@ -80,7 +80,8 @@ html, body {
 /* Root wrapper for the page */
 .page-root {
   display: grid;
-  grid-template-columns: 4fr 7fr; /* was 3fr 4fr */  
+  grid-template-columns: 4fr 7fr; /* was 3fr 4fr */ 
+  
   height: 100vh;
   background: var(--bg-panel);
   }
@@ -841,19 +842,19 @@ font-weight: 700;
 }
 
 .ship-info-panel-yellow-text {
-font-family: "Brandon Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+font-family: "BrandonGrotesque_Bold", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 font-size: 20px;
-font-weight: 700;
+color: #00407A;
 }
 
 .ship-info-panel-qr-title,
 .ship-info-panel-qr-title.big {
-font-family: "Brandon Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+font-family: "BrandonGrotesque_Bold", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 font-size: 30px;
-color: #00407A;
+font-weight: 600;
+color: #00407A; 
 transform: translateX(100px);
 
-font-weight: 900;
 line-height: 35px;
 letter-spacing: 0.08em;
 text-transform: uppercase;
