@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { AuthGate } from "../components/AuthGate";
 
 export default function ProtectedLayout({
@@ -7,5 +8,9 @@ export default function ProtectedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <AuthGate>{children}</AuthGate>;
+  return (
+    <Suspense fallback={null}>
+      <AuthGate>{children}</AuthGate>
+    </Suspense>
+  );
 }
