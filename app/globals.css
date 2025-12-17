@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+
+
 @font-face {
 font-family: "Silent Asia";
 src: url("/fonts/Silent_Asia.otf") format("opentype");
@@ -1202,3 +1204,59 @@ Login Page Styles
 .ship-info-panel-qr-title.big {
   transform: none;
 }
+
+.ship-info-panel-qr-strip {
+  padding-top: 26px;
+  padding-bottom: 26px;
+  align-items: center;
+  min-height: 170px;
+}
+
+.ship-info-panel-qr-img-wrap {
+  padding: 8px 0;
+}
+
+.ship-info-panel-qr-img {
+  width: 130px;
+  height: 130px;
+  display: block;
+  object-fit: contain;
+}
+
+.ship-info-panel-yellow-banner {
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+  position: relative;
+  z-index: 2;
+  margin-top: 41px; 
+  margin-bottom: -1px;
+}
+
+.ship-info-panel-qr-strip {
+  margin-top: -1px;
+}
+
+
+/* ==========================================================================
+   6. APP SCALE FOR SMALLER SCREENS
+   ========================================================================== */
+
+:root {
+  --app-scale: 0.8;
+}
+
+.page-root {
+  transform: scale(var(--app-scale));
+  transform-origin: top left;
+  width: calc(100% / var(--app-scale));
+  height: calc(100% / var(--app-scale));
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+}
+
+

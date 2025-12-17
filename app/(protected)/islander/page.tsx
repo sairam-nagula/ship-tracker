@@ -1,4 +1,3 @@
-//app/(protected)/islander/page.tsx
 "use client";
 
 export const runtime = "nodejs";

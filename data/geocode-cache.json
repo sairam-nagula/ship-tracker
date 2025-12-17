@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2025-12-15T01:39:27.523Z",
+  "updatedAt": "2025-12-17T22:14:56.380Z",
   "entries": {
     "port tampa bay": {
       "lat": 27.9503837,
@@ -13,6 +13,18 @@
     "progreso, mexico": {
       "lat": 21.2811908,
       "lng": -89.66516279999999
+    },
+    "port of palm beach": {
+      "lat": 26.7670074,
+      "lng": -80.0511523
+    },
+    "key west, fl": {
+      "lat": 24.5550593,
+      "lng": -81.7799871
+    },
+    "freeport, grand bahama": {
+      "lat": 26.5333159,
+      "lng": -78.6429019
     }
   }
 }

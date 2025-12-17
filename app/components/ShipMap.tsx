@@ -10,6 +10,13 @@ const mapContainerStyle = {
   height: "100%",
 };
 
+const dashedLineSymbol = {
+  path: "M 0,-.5 0,3",
+  strokeOpacity: .4,
+  strokeWeight: 2,
+};
+
+
 export type ShipTrackPoint = {
   lat: number;
   lng: number;
@@ -42,6 +49,11 @@ function toNumber(v: unknown): number | null {
   return null;
 }
 
+function isAtSea(port: string | null | undefined): boolean {
+  const s = (port || "").toLowerCase().trim();
+  return s.includes("at sea");
+}
+
 export function ShipMap({ ship, error, track = [], itineraryEndpoint }: Props) {
   const { isLoaded } = useGoogleMapsLoader();
 
@@ -58,25 +70,6 @@ export function ShipMap({ ship, error, track = [], itineraryEndpoint }: Props) {
     ship && Number.isFinite(ship.lat) && Number.isFinite(ship.lng)
       ? { lat: ship.lat, lng: ship.lng }
       : { lat: 0, lng: 0 };
-
-  const heading = ship?.courseDeg ?? 0;
-
-  const shipIcon = useMemo(() => {
-    if (typeof window === "undefined") return undefined;
-    const g = (window as any).google?.maps;
-    if (!g) return undefined;
-
-    return {
-      path: g.SymbolPath.FORWARD_CLOSED_ARROW,
-      scale: 4,
-      strokeWeight: 1,
-      strokeColor: "#000000ff",
-      fillColor: "#000000ff",
-      fillOpacity: 1,
-      rotation: heading,
-      anchor: new g.Point(-0.8, 2.5),
-    };
-  }, [heading, isLoaded]);
 
   const path = useMemo(
     () =>
@@ -135,7 +128,6 @@ export function ShipMap({ ship, error, track = [], itineraryEndpoint }: Props) {
     }
 
     const url = itineraryEndpoint;
-
     let cancelled = false;
 
     async function load() {
@@ -179,11 +171,33 @@ export function ShipMap({ ship, error, track = [], itineraryEndpoint }: Props) {
           port: r.port,
           pos: { lat, lng },
           isActive: itineraryDayIndex === i,
+          index: i,
         };
       })
       .filter((x): x is NonNullable<typeof x> => x !== null);
   }, [itineraryRows, itineraryDayIndex]);
 
+  // NEW: pick the "next destination" after the current day, skipping "At Sea"
+  const nextDestination = useMemo(() => {
+    if (!itineraryRows || itineraryRows.length === 0) return null;
+
+    const start = (typeof itineraryDayIndex === "number" ? itineraryDayIndex : -1) + 1;
+
+    for (let i = start; i < itineraryRows.length; i++) {
+      const row = itineraryRows[i];
+      if (isAtSea(row.port)) continue;
+
+      const lat = toNumber(row.lat);
+      const lng = toNumber(row.lng);
+      if (lat === null || lng === null) continue;
+
+      return { index: i, pos: { lat, lng }, port: row.port };
+    }
+
+    return null;
+  }, [itineraryRows, itineraryDayIndex]);
+
+  // Keep the map framing to include ship + all itinerary markers
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -192,23 +206,11 @@ export function ShipMap({ ship, error, track = [], itineraryEndpoint }: Props) {
     if (itineraryMarkers.length === 0) return;
 
     const bounds = new google.maps.LatLngBounds();
-
     bounds.extend({ lat: ship.lat, lng: ship.lng });
 
-    for (const m of itineraryMarkers) {
-      bounds.extend(m.pos);
-    }
+    for (const m of itineraryMarkers) bounds.extend(m.pos);
 
     map.fitBounds(bounds, 40);
-
-    const once = google.maps.event.addListenerOnce(map, "bounds_changed", () => {
-      const z = map.getZoom();
-      if (typeof z === "number" && z > 9) map.setZoom(9);
-    });
-
-    return () => {
-      google.maps.event.removeListener(once);
-    };
   }, [itineraryMarkers, ship]);
 
   const destinationIcon = useMemo(() => {
@@ -234,6 +236,37 @@ export function ShipMap({ ship, error, track = [], itineraryEndpoint }: Props) {
       anchor: new g.Point(19, 38),
     };
   }, [isLoaded]);
+
+  const shipMarkerIcon = useMemo(() => {
+    if (typeof window === "undefined") return undefined;
+    const g = (window as any).google?.maps;
+    if (!g) return undefined;
+
+    return {
+      url: "/ship-marker-navy.png",
+      scaledSize: new g.Size(34, 34),
+      anchor: new g.Point(17, 34),
+    };
+  }, [isLoaded]);
+
+  // NEW: dotted line symbol for the "next destination" guidance line
+  const dottedLineSymbol = useMemo(() => {
+    if (typeof window === "undefined") return undefined;
+    const g = (window as any).google?.maps;
+    if (!g) return undefined;
+
+    return {
+      path: g.SymbolPath.CIRCLE,
+      scale: 2.2,
+      strokeOpacity: 1,
+      strokeWeight: 2,
+    };
+  }, [isLoaded]);
+
+  const nextLinePath = useMemo(() => {
+    if (!nextDestination) return null;
+    return [markerPosition, nextDestination.pos];
+  }, [markerPosition, nextDestination]);
 
   return (
     <section className="map-pane">
@@ -289,7 +322,27 @@ export function ShipMap({ ship, error, track = [], itineraryEndpoint }: Props) {
               />
             ))}
 
-            <MarkerF position={markerPosition} icon={shipIcon} />
+            {/* NEW: dotted line from ship -> next destination (skips "At Sea") */}
+            {nextLinePath && dottedLineSymbol && (
+              <PolylineF
+                path={nextLinePath}
+                options={{
+                  geodesic: true,
+                  strokeOpacity: 0,
+                  strokeWeight: 2,
+                  icons: [
+                    {
+                      icon: dashedLineSymbol,
+                      offset: "0",
+                      repeat: "14px",
+                    },
+                  ],
+                  zIndex: 25,
+                }}
+              />
+            )}
+
+            <MarkerF position={markerPosition} icon={shipMarkerIcon} />
           </GoogleMap>
         ) : (
           <div className="map-loading">{error ? `Error: ${error}` : "Loading map…"}</div>

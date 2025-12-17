@@ -1,5 +1,7 @@
 "use client";
 
+export const runtime = "nodejs";
+
 import { ShipInfoPanel } from "../../components/ShipInfoPanel";
 import { ShipMap } from "../../components/ShipMap";
 import { useShipLocation } from "../../components/useShipLocation";
@@ -21,7 +23,6 @@ export default function ParadisePage() {
         cruisenewsEndpoint="/Paradise-cruisenews.png"
       />
       <ShipMap ship={ship} error={error} track={track} itineraryEndpoint="/api/Paradise/paradise-itinerary" />
-
     </main>
   );
 }

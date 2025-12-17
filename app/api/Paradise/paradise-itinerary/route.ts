@@ -1,4 +1,4 @@
-// app/api/islander-itinerary/route.ts
+// app/api/paradise-itinerary/route.ts
 import { NextResponse } from "next/server";
 import * as cheerio from "cheerio";
 import { getKaptureCookieHeader } from "@/app/api/Kapture/kapture_auth";
@@ -401,7 +401,7 @@ export async function GET(req: Request) {
       { status: 200 }
     );
   } catch (err: any) {
-    console.error("Error in /api/islander-itinerary:", err);
+    console.error("Error in /api/paradise-itinerary:", err);
     return NextResponse.json(
       {
         error: "Failed to load itinerary",
