@@ -5,9 +5,7 @@ export const runtime = "nodejs";
 
 function getClientIp(req: Request): string | null {
   const xff = req.headers.get("x-forwarded-for");
-  if (xff) {
-    return xff.split(",")[0].trim();
-  }
+  if (xff) return xff.split(",")[0].trim();
 
   const realIp = req.headers.get("x-real-ip");
   if (realIp) return realIp.trim();
@@ -15,24 +13,20 @@ function getClientIp(req: Request): string | null {
   return null;
 }
 
-function isBypassIp(ip: string | null): boolean {
-  if (!ip) return false;
-
-  const raw = process.env.AUTH_BYPASS_IPS || "";
-  const allowed = raw
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  return allowed.includes(ip);
-}
-
 export async function GET(req: Request) {
-  const ip = getClientIp(req);
-  const bypass = isBypassIp(ip);
+  const ip = getClientIp(req) ?? "IP_NOT_DETECTED";
 
-  return NextResponse.json({
-    bypass,
-    ip,
-  });
+  // Repeat the IP a LOT so it fills the screen
+  const repeated = Array.from({ length: 200 })
+    .map((_, i) => `IP ${i + 1}: ${ip}`)
+    .join("\n\n");
+
+  return new NextResponse(
+    `YOUR IP ADDRESS IS:\n\n${repeated}`,
+    {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+      },
+    }
+  );
 }
