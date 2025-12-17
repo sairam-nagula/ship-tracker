@@ -547,6 +547,7 @@ body {
 --ship-info-panel-white: rgba(255, 255, 255, 0.95);
 --ship-info-panel-yellow: #f2d24b;
 --ship-info-panel-divider: rgba(255, 255, 255, 0.52);
+--ship-info-panel-gutter: 18px;
 }
 
 .ship-info-panel-root {
