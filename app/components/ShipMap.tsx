@@ -1,9 +1,10 @@
 "use client";
 
-import { GoogleMap, MarkerF, PolylineF } from "@react-google-maps/api";
 import type { ShipLocation } from "./useShipLocation";
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { useGoogleMapsLoader } from "./useGoogleMapsLoader";
+import { GoogleMap, MarkerF, PolylineF, OverlayViewF } from "@react-google-maps/api";
+
 
 const mapContainerStyle = {
   width: "100%",
@@ -38,6 +39,31 @@ type Props = {
 };
 
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAP_ID;
+
+function ItinLabelOverlay({
+  pos,
+  text,
+  isActive,
+}: {
+  pos: { lat: number; lng: number };
+  text: string;
+  isActive: boolean;
+}) {
+  return (
+    <OverlayViewF
+      position={pos}
+      mapPaneName="overlayMouseTarget"
+    >
+      <div className={`gm-itin-label ${isActive ? "is-active" : "is-faded"}`}>
+        {text}
+      </div>
+    </OverlayViewF>
+  );
+}
+
+
+
+
 
 function toNumber(v: unknown): number | null {
   if (v === null || v === undefined) return null;
@@ -302,17 +328,41 @@ const itineraryMarkers = useMemo(() => {
               />
             ))}
 
-            {itineraryMarkers.map((m) => (
-              <MarkerF
-                key={m.key}
-                position={m.pos}
-                icon={destinationIcon}
-                options={{
-                  clickable: false,
-                  zIndex: m.isActive ? 30 : 10,
-                }}
-              />
-            ))}
+            {itineraryMarkers.map((m) => {
+              const dayNum = m.index + 1;
+              const totalDays = itineraryRows.length;
+
+              let labelText: string;
+
+              if (m.index === 0 || m.index === totalDays - 1) {
+                labelText = m.port;
+              } else {
+                labelText = `Day ${m.index + 1} | ${m.port}`;
+              }
+
+
+              return (
+                <div key={m.key}>
+                  <MarkerF
+                    position={m.pos}
+                    icon={destinationIcon}
+                    options={{
+                      clickable: false,
+                      zIndex: m.isActive ? 30 : 10,
+                    }}
+                  />
+
+                  <ItinLabelOverlay
+                    pos={m.pos}
+                    text={labelText}
+                    isActive={m.isActive}
+                  />
+                </div>
+              );
+            })}
+
+
+
 
           
 
