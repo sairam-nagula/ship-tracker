@@ -13,6 +13,10 @@ type ItineraryRow = {
 
 const TZ = "America/New_York";
 
+// Turnaround cutoff (NY time)
+const SWITCH_CUTOFF_HH = 11;
+const SWITCH_CUTOFF_MM = 15;
+
 function getNowNY(): { y: number; m: number; d: number } {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: TZ,
@@ -26,6 +30,32 @@ function getNowNY(): { y: number; m: number; d: number } {
   const d = Number(parts.find((p) => p.type === "day")?.value);
 
   return { y, m, d };
+}
+
+function getNowNYFull(): { y: number; m: number; d: number; hh: number; mm: number } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+
+  const y = Number(parts.find((p) => p.type === "year")?.value);
+  const m = Number(parts.find((p) => p.type === "month")?.value);
+  const d = Number(parts.find((p) => p.type === "day")?.value);
+  const hh = Number(parts.find((p) => p.type === "hour")?.value);
+  const mm = Number(parts.find((p) => p.type === "minute")?.value);
+
+  return { y, m, d, hh, mm };
+}
+
+function isBeforeCutoffNY(now: { hh: number; mm: number }): boolean {
+  if (now.hh < SWITCH_CUTOFF_HH) return true;
+  if (now.hh > SWITCH_CUTOFF_HH) return false;
+  return now.mm < SWITCH_CUTOFF_MM;
 }
 
 function monthNameToNum(mon: string): number | null {
@@ -136,14 +166,17 @@ async function getCurrentSailingId(
   cookie: string,
   cruiseId: string
 ): Promise<string | null> {
-  const now = getNowNY();
+  const now = getNowNYFull();
   const target = ymdToKey(now.y, now.m, now.d);
+  const beforeCutoff = isBeforeCutoffNY(now);
 
   const candidates: Array<{ y: number; m: number }> = [
     { y: now.y, m: now.m },
     { y: now.m === 1 ? now.y - 1 : now.y, m: now.m === 1 ? 12 : now.m - 1 },
     { y: now.m === 12 ? now.y + 1 : now.y, m: now.m === 12 ? 1 : now.m + 1 },
   ];
+
+  type Match = { id: string; startYMD: number; endYMD: number };
 
   for (const c of candidates) {
     const html = await fetchMonthWiseHtml(cookie, cruiseId, c.m, c.y);
@@ -152,7 +185,7 @@ async function getCurrentSailingId(
     const table = $("table.sailing_details_table");
     if (!table.length) continue;
 
-    let found: string | null = null;
+    const matches: Match[] = [];
 
     table.find("tbody tr").each((_, tr) => {
       const tds = $(tr).find("td");
@@ -168,11 +201,37 @@ async function getCurrentSailingId(
       if (!range) return;
 
       if (target >= range.startYMD && target <= range.endYMD) {
-        found = id;
+        matches.push({ id, startYMD: range.startYMD, endYMD: range.endYMD });
       }
     });
 
-    if (found) return found;
+    if (!matches.length) continue;
+
+    // If only one match, that's the answer
+    if (matches.length === 1) return matches[0].id;
+
+    // Overlap day logic:
+    // - "previous sailing" is one that ends today (endYMD === target) but started before today
+    // - "next sailing" is one that starts today (startYMD === target)
+    const startsToday = matches.filter((m) => m.startYMD === target);
+    const endsToday = matches.filter((m) => m.endYMD === target && m.startYMD < target);
+
+    if (startsToday.length > 0 && endsToday.length > 0) {
+      if (beforeCutoff) {
+        // Before cutoff: use the sailing that is ending today
+        endsToday.sort((a, b) => b.startYMD - a.startYMD);
+        return endsToday[0].id;
+      } else {
+        // After cutoff: use the sailing that is starting today
+        startsToday.sort((a, b) => a.endYMD - b.endYMD);
+        return startsToday[0].id;
+      }
+    }
+
+    // Fallback tie-breaker if overlaps exist but not classic turnaround:
+    // choose the sailing with the latest start date
+    matches.sort((a, b) => b.startYMD - a.startYMD);
+    return matches[0].id;
   }
 
   return null;

@@ -209,25 +209,7 @@ const itineraryMarkers = useMemo(() => {
   return Array.from(byPos.values()).sort((a, b) => a.index - b.index);
 }, [itineraryRows, itineraryDayIndex]);
 
-  // NEW: pick the "next destination" after the current day, skipping "At Sea"
-  const nextDestination = useMemo(() => {
-    if (!itineraryRows || itineraryRows.length === 0) return null;
 
-    const start = (typeof itineraryDayIndex === "number" ? itineraryDayIndex : -1) + 1;
-
-    for (let i = start; i < itineraryRows.length; i++) {
-      const row = itineraryRows[i];
-      if (isAtSea(row.port)) continue;
-
-      const lat = toNumber(row.lat);
-      const lng = toNumber(row.lng);
-      if (lat === null || lng === null) continue;
-
-      return { index: i, pos: { lat, lng }, port: row.port };
-    }
-
-    return null;
-  }, [itineraryRows, itineraryDayIndex]);
 
   // Keep the map framing to include ship + all itinerary markers
   useEffect(() => {
@@ -276,24 +258,7 @@ const itineraryMarkers = useMemo(() => {
 
 
 
-  // NEW: dotted line symbol for the "next destination" guidance line
-  const dottedLineSymbol = useMemo(() => {
-    if (typeof window === "undefined") return undefined;
-    const g = (window as any).google?.maps;
-    if (!g) return undefined;
-
-    return {
-      path: g.SymbolPath.CIRCLE,
-      scale: 2.2,
-      strokeOpacity: 1,
-      strokeWeight: 2,
-    };
-  }, [isLoaded]);
-
-  const nextLinePath = useMemo(() => {
-    if (!nextDestination) return null;
-    return [markerPosition, nextDestination.pos];
-  }, [markerPosition, nextDestination]);
+  
 
   return (
     <section className="map-pane">
@@ -349,25 +314,7 @@ const itineraryMarkers = useMemo(() => {
               />
             ))}
 
-            {/* NEW: dotted line from ship -> next destination (skips "At Sea") */}
-            {nextLinePath && dottedLineSymbol && (
-              <PolylineF
-                path={nextLinePath}
-                options={{
-                  geodesic: true,
-                  strokeOpacity: 0,
-                  strokeWeight: 2,
-                  icons: [
-                    {
-                      icon: dashedLineSymbol,
-                      offset: "0",
-                      repeat: "14px",
-                    },
-                  ],
-                  zIndex: 25,
-                }}
-              />
-            )}
+          
 
             <MarkerF position={markerPosition} icon={shipMarkerIcon} />
           </GoogleMap>
