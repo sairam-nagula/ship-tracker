@@ -1242,3 +1242,35 @@ Login Page Styles
    6. APP SCALE FOR SMALLER SCREENS
    ========================================================================== */
 
+:root {
+  --design-w: 3840;
+  --design-h: 2160;
+
+  /* scale whole UI to fit any workstation window */
+  --ui-scale: min(
+    calc(100vw / var(--design-w)),
+    calc(100vh / var(--design-h))
+  );
+
+  /* TV overscan safety */
+  --safe: 32px;
+}
+
+.screen {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
+}
+
+.artboard {
+  width: calc(var(--design-w) * 1px);
+  height: calc(var(--design-h) * 1px);
+
+  transform: scale(var(--ui-scale));
+  transform-origin: top left;
+
+  box-sizing: border-box;
+  padding: var(--safe);
+  overflow: hidden;
+}

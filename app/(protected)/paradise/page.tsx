@@ -12,17 +12,26 @@ export default function ParadisePage() {
   const { track = [] } = useShipTrack("paradise");
 
   return (
-    <main className="page-root">
-      <ShipInfoPanel
-        ship={ship}
-        error={error}
-        logoSrc="/MVAS_Paradise Logo.png"
-        heroSrc="/paradise.png" 
-        shipLabel="MVAS Paradise"
-        itineraryEndpoint="/api/Paradise/paradise-itinerary"
-        cruisenewsEndpoint="/Paradise-cruisenews.png"
-      />
-      <ShipMap ship={ship} error={error} track={track} itineraryEndpoint="/api/Paradise/paradise-itinerary" />
-    </main>
+    <div className="screen">
+      <div className="artboard">
+        <main className="page-root">
+          <ShipInfoPanel
+            ship={ship}
+            error={error}
+            logoSrc="/MVAS_Paradise Logo.png"
+            heroSrc="/paradise.png"
+            shipLabel="MVAS Paradise"
+            itineraryEndpoint="/api/Paradise/paradise-itinerary"
+            cruisenewsEndpoint="/Paradise-cruisenews.png"
+          />
+          <ShipMap
+            ship={ship}
+            error={error}
+            track={track}
+            itineraryEndpoint="/api/Paradise/paradise-itinerary"
+          />
+        </main>
+      </div>
+    </div>
   );
 }
