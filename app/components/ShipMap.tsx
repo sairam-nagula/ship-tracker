@@ -159,23 +159,55 @@ export function ShipMap({ ship, error, track = [], itineraryEndpoint }: Props) {
     };
   }, [itineraryEndpoint]);
 
-  const itineraryMarkers = useMemo(() => {
-    return (itineraryRows || [])
-      .map((r, i) => {
-        const lat = toNumber(r.lat);
-        const lng = toNumber(r.lng);
-        if (lat === null || lng === null) return null;
+const itineraryMarkers = useMemo(() => {
+  const keyFor = (lat: number, lng: number) => {
+    // Round so tiny float differences don't create "fake" uniques
+    const rLat = Math.round(lat * 10_000) / 10_000;
+    const rLng = Math.round(lng * 10_000) / 10_000;
+    return `${rLat}|${rLng}`;
+  };
 
-        return {
-          key: `${r.port}-${i}`,
-          port: r.port,
-          pos: { lat, lng },
-          isActive: itineraryDayIndex === i,
-          index: i,
-        };
-      })
-      .filter((x): x is NonNullable<typeof x> => x !== null);
-  }, [itineraryRows, itineraryDayIndex]);
+  const byPos = new Map<
+    string,
+    {
+      key: string;
+      port: string;
+      pos: { lat: number; lng: number };
+      isActive: boolean;
+      index: number;
+    }
+  >();
+
+  for (let i = 0; i < (itineraryRows || []).length; i++) {
+    const r = itineraryRows[i];
+    const lat = toNumber(r.lat);
+    const lng = toNumber(r.lng);
+    if (lat === null || lng === null) continue;
+
+    const posKey = keyFor(lat, lng);
+    const candidate = {
+      key: `${r.port}-${i}`,
+      port: r.port,
+      pos: { lat, lng },
+      isActive: itineraryDayIndex === i,
+      index: i,
+    };
+
+    const existing = byPos.get(posKey);
+
+    // Keep the active one if either is active; otherwise keep the earliest
+    if (!existing) {
+      byPos.set(posKey, candidate);
+    } else if (!existing.isActive && candidate.isActive) {
+      byPos.set(posKey, candidate);
+    } else if (!existing.isActive && !candidate.isActive && candidate.index < existing.index) {
+      byPos.set(posKey, candidate);
+    }
+  }
+
+  // Keep original itinerary order (by index)
+  return Array.from(byPos.values()).sort((a, b) => a.index - b.index);
+}, [itineraryRows, itineraryDayIndex]);
 
   // NEW: pick the "next destination" after the current day, skipping "At Sea"
   const nextDestination = useMemo(() => {
@@ -210,7 +242,7 @@ export function ShipMap({ ship, error, track = [], itineraryEndpoint }: Props) {
 
     for (const m of itineraryMarkers) bounds.extend(m.pos);
 
-    map.fitBounds(bounds, 40);
+    map.fitBounds(bounds, 220);
   }, [itineraryMarkers, ship]);
 
   const destinationIcon = useMemo(() => {
@@ -220,34 +252,29 @@ export function ShipMap({ ship, error, track = [], itineraryEndpoint }: Props) {
 
     return {
       url: "/destination-marker.png",
-      scaledSize: new g.Size(28, 28),
-      anchor: new g.Point(14, 28),
+      scaledSize: new g.Size(30, 30),
+      anchor: new g.Point(10, 20),
     };
   }, [isLoaded]);
 
-  const destinationIconActive = useMemo(() => {
-    if (typeof window === "undefined") return undefined;
-    const g = (window as any).google?.maps;
-    if (!g) return undefined;
-
-    return {
-      url: "/destination-marker.png",
-      scaledSize: new g.Size(38, 38),
-      anchor: new g.Point(19, 38),
-    };
-  }, [isLoaded]);
 
   const shipMarkerIcon = useMemo(() => {
     if (typeof window === "undefined") return undefined;
     const g = (window as any).google?.maps;
     if (!g) return undefined;
 
+    const WIDTH = 47;
+    const HEIGHT = 62;
+    const SCALE = 0.8;
+
     return {
       url: "/ship-marker-navy.png",
-      scaledSize: new g.Size(34, 34),
-      anchor: new g.Point(17, 34),
+      scaledSize: new g.Size(WIDTH * SCALE, HEIGHT * SCALE),
+      anchor: new g.Point((WIDTH * SCALE) / 2, HEIGHT * SCALE),
     };
   }, [isLoaded]);
+
+
 
   // NEW: dotted line symbol for the "next destination" guidance line
   const dottedLineSymbol = useMemo(() => {
@@ -314,7 +341,7 @@ export function ShipMap({ ship, error, track = [], itineraryEndpoint }: Props) {
               <MarkerF
                 key={m.key}
                 position={m.pos}
-                icon={m.isActive ? destinationIconActive : destinationIcon}
+                icon={destinationIcon}
                 options={{
                   clickable: false,
                   zIndex: m.isActive ? 30 : 10,
