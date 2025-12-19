@@ -12,8 +12,6 @@ export default function ParadisePage() {
   const { track = [] } = useShipTrack("paradise");
 
   return (
-    <div className="screen">
-      <div className="artboard">
         <main className="page-root">
           <ShipInfoPanel
             ship={ship}
@@ -31,7 +29,5 @@ export default function ParadisePage() {
             itineraryEndpoint="/api/Paradise/paradise-itinerary"
           />
         </main>
-      </div>
-    </div>
   );
 }
