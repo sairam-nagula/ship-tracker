@@ -1242,21 +1242,3 @@ Login Page Styles
    6. APP SCALE FOR SMALLER SCREENS
    ========================================================================== */
 
-:root {
-  --app-scale: 0.8;
-}
-
-.page-root {
-  transform: scale(var(--app-scale));
-  transform-origin: top left;
-  width: calc(100% / var(--app-scale));
-  height: calc(100% / var(--app-scale));
-}
-
-html,
-body {
-  height: 100%;
-  width: 100%;
-}
-
-
