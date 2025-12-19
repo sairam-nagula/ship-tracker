@@ -18,7 +18,7 @@ const TZ = "America/New_York";
 
 // MUST match your itinerary cutoff
 const SWITCH_CUTOFF_HH = 11;
-const SWITCH_CUTOFF_MM = 15;
+const SWITCH_CUTOFF_MM = 30;
 
 // Safety caps
 const MIN_HISTORY_HOURS = 6;

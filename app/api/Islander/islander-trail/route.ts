@@ -23,7 +23,7 @@ const SWITCH_CUTOFF_MM = 15;
 // Safety caps (tweak if you want)
 const MIN_HISTORY_HOURS = 6;
 const MAX_HISTORY_HOURS = 24 * 21; // 21 days
-const FALLBACK_HISTORY_HOURS = 54;
+const FALLBACK_HISTORY_HOURS = 34;
 
 function clamp(n: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, n));

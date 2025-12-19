@@ -1242,7 +1242,7 @@ Login Page Styles
    ========================================================================== */
 .gm-itin-label {
   position: absolute;
-  transform: translate(22px, -70%); /* pushes text right of marker + vertically centers */
+  transform: translate(22px, -75%); 
   white-space: nowrap;
 
   font-family: "Brandon Grotesque", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
