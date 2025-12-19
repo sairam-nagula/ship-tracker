@@ -52,7 +52,7 @@ function ItinLabelOverlay({
   return (
     <OverlayViewF
       position={pos}
-      mapPaneName="overlayMouseTarget"
+      mapPaneName="overlayLayer"
     >
       <div className={`gm-itin-label ${isActive ? "is-active" : "is-faded"}`}>
         {text}
@@ -250,7 +250,7 @@ const itineraryMarkers = useMemo(() => {
 
     for (const m of itineraryMarkers) bounds.extend(m.pos);
 
-    map.fitBounds(bounds, 220);
+    map.fitBounds(bounds, 280);
   }, [itineraryMarkers, ship]);
 
   const destinationIcon = useMemo(() => {
@@ -366,7 +366,14 @@ const itineraryMarkers = useMemo(() => {
 
           
 
-            <MarkerF position={markerPosition} icon={shipMarkerIcon} />
+            <MarkerF
+              position={markerPosition}
+              icon={shipMarkerIcon}
+              options={{
+                zIndex: 9999,
+              }}
+            />
+
           </GoogleMap>
         ) : (
           <div className="map-loading">{error ? `Error: ${error}` : "Loading map…"}</div>
