@@ -1,4 +1,4 @@
-// app/api/paradise-itinerary/route.ts
+// app/api/Paradise/paradise-itinerary/route.ts
 import { NextResponse } from "next/server";
 import * as cheerio from "cheerio";
 import { getKaptureCookieHeader } from "@/app/api/Kapture/kapture_auth";
@@ -249,9 +249,6 @@ function daysBetweenUTC(
   return Math.floor((A - B) / 86400000);
 }
 
-/* =======================
-   ✅ 12-hour in-memory cookie cache
-   ======================= */
 
 type CookieCache = {
   cookie: string;

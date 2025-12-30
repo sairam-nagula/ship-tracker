@@ -1,4 +1,4 @@
-// app/api/islander-itinerary/route.ts
+// app/api/Islander/islander-itinerary/route.ts
 import { NextResponse } from "next/server";
 import * as cheerio from "cheerio";
 import { getKaptureCookieHeader } from "@/app/api/Kapture/kapture_auth";
@@ -207,29 +207,21 @@ async function getCurrentSailingId(
 
     if (!matches.length) continue;
 
-    // If only one match, that's the answer
     if (matches.length === 1) return matches[0].id;
 
-    // Overlap day logic:
-    // - "previous sailing" is one that ends today (endYMD === target) but started before today
-    // - "next sailing" is one that starts today (startYMD === target)
     const startsToday = matches.filter((m) => m.startYMD === target);
     const endsToday = matches.filter((m) => m.endYMD === target && m.startYMD < target);
 
     if (startsToday.length > 0 && endsToday.length > 0) {
       if (beforeCutoff) {
-        // Before cutoff: use the sailing that is ending today
         endsToday.sort((a, b) => b.startYMD - a.startYMD);
         return endsToday[0].id;
       } else {
-        // After cutoff: use the sailing that is starting today
         startsToday.sort((a, b) => a.endYMD - b.endYMD);
         return startsToday[0].id;
       }
     }
 
-    // Fallback tie-breaker if overlaps exist but not classic turnaround:
-    // choose the sailing with the latest start date
     matches.sort((a, b) => b.startYMD - a.startYMD);
     return matches[0].id;
   }
@@ -257,9 +249,6 @@ function daysBetweenUTC(
   return Math.floor((A - B) / 86400000);
 }
 
-/* =======================
-   ✅ 12-hour in-memory cookie cache
-   ======================= */
 
 type CookieCache = {
   cookie: string;
@@ -460,7 +449,7 @@ export async function GET(req: Request) {
       { status: 200 }
     );
   } catch (err: any) {
-    console.error("Error in /api/islander-itinerary:", err);
+    console.error("Error in /api/Islander/islander-itinerary:", err);
     return NextResponse.json(
       {
         error: "Failed to load itinerary",
