@@ -285,52 +285,48 @@ export function ShipInfoPanel({
   }, []);
 
   // Determine which itinerary row is active right now
-  useEffect(() => {
-    if (!itinerary || itinerary.length === 0) {
-      setActiveIndex(null);
-      return;
-    }
+ // Load itinerary data (use API's currentDayIndex)
+useEffect(() => {
+  if (!itineraryEndpoint) return;
 
-    const year = new Date().getFullYear();
-    const parsed = itinerary.map((row) => parseDateRange(row.date, year));
-    const now = new Date();
+  let cancelled = false;
 
-    let current: number | null = null;
+  async function loadItinerary() {
+    try {
+      setItineraryLoading(true);
+      setItineraryError(null);
 
-    // 1) Try to find a leg where "now" is inside [start, end)
-    for (let i = 0; i < parsed.length; i++) {
-      const cur = parsed[i];
-      if (!cur.start) continue;
+      const res = await fetch(itineraryEndpoint, { cache: "no-store" });
+      if (!res.ok) throw new Error(`Itinerary API error: ${res.status}`);
 
-      const next = parsed[i + 1];
-      const legEnd = cur.end ?? next?.start ?? null;
+      const json = (await res.json()) as {
+        rows?: ItineraryRow[];
+        currentDayIndex?: number | null;
+      };
 
-      if (legEnd && now >= cur.start && now < legEnd) {
-        current = i;
-        break;
+      if (cancelled) return;
+
+      setItinerary(json.rows ?? []);
+      setActiveIndex(typeof json.currentDayIndex === "number" ? json.currentDayIndex : null);
+    } catch (e: any) {
+      console.error(e);
+      if (!cancelled) {
+        setItinerary([]);
+        setActiveIndex(null);
+        setItineraryError(e?.message || "Failed to load itinerary");
       }
+    } finally {
+      if (!cancelled) setItineraryLoading(false);
     }
+  }
 
-    // 2) If none, pick the first leg that is still in the future
-    if (current === null) {
-      for (let i = 0; i < parsed.length; i++) {
-        const cur = parsed[i];
-        if (!cur.start) continue;
+  loadItinerary();
 
-        if (now < cur.start) {
-          current = i;
-          break;
-        }
-      }
-    }
+  return () => {
+    cancelled = true;
+  };
+}, [itineraryEndpoint]);
 
-    // 3) If still none, everything is in the past -> highlight last row
-    if (current === null) {
-      current = parsed.length - 1;
-    }
-
-    setActiveIndex(current);
-  }, [itinerary]);
 
   // Prefer fetched weather; fall back to ship
   const tempF = weather?.weatherTempF ?? ship?.weatherTempC ?? null;
