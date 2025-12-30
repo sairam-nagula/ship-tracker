@@ -4,6 +4,11 @@ import * as cheerio from "cheerio";
 import { getKaptureCookieHeader } from "@/app/api/Kapture/kapture_auth";
 import { geocodePlace } from "@/app/api/Kapture/geocode";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+
 type ItineraryRow = {
   date: string;
   port: string;
@@ -445,9 +450,17 @@ export async function GET(req: Request) {
       rawIndex == null ? null : Math.max(0, Math.min(rows.length - 1, rawIndex));
 
     return NextResponse.json(
-      { rows, sailingId, sailingStartDateISO, currentDayIndex },
-      { status: 200 }
-    );
+  { rows, sailingId, sailingStartDateISO, currentDayIndex },
+  {
+    status: 200,
+    headers: {
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
+    },
+  }
+);
+
   } catch (err: any) {
     console.error("Error in /api/paradise-itinerary:", err);
     return NextResponse.json(

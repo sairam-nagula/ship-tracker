@@ -290,6 +290,7 @@ useEffect(() => {
   if (!itineraryEndpoint) return;
 
   let cancelled = false;
+  let intervalId: any = null;
 
   async function loadItinerary() {
     try {
@@ -302,12 +303,21 @@ useEffect(() => {
       const json = (await res.json()) as {
         rows?: ItineraryRow[];
         currentDayIndex?: number | null;
+        sailingId?: string | null;
+        sailingStartDateISO?: string | null;
       };
 
       if (cancelled) return;
 
       setItinerary(json.rows ?? []);
       setActiveIndex(typeof json.currentDayIndex === "number" ? json.currentDayIndex : null);
+
+      // Optional: log switches so you can confirm it’s updating on prod
+      // console.log("Itinerary refresh:", {
+      //   sailingId: json.sailingId,
+      //   currentDayIndex: json.currentDayIndex,
+      //   start: json.sailingStartDateISO,
+      // });
     } catch (e: any) {
       console.error(e);
       if (!cancelled) {
@@ -320,10 +330,25 @@ useEffect(() => {
     }
   }
 
+  // 1) Load immediately
   loadItinerary();
+
+  // 2) Poll (pick an interval that makes sense for the TVs)
+  // 60s is fine; 120s also fine. I’ll do 60s so day switches are quick.
+  intervalId = setInterval(loadItinerary, 60_000);
+
+  // 3) Refresh when tab becomes visible again
+  const onVis = () => {
+    if (document.visibilityState === "visible") loadItinerary();
+  };
+  document.addEventListener("visibilitychange", onVis);
+  window.addEventListener("focus", loadItinerary);
 
   return () => {
     cancelled = true;
+    if (intervalId) clearInterval(intervalId);
+    document.removeEventListener("visibilitychange", onVis);
+    window.removeEventListener("focus", loadItinerary);
   };
 }, [itineraryEndpoint]);
 

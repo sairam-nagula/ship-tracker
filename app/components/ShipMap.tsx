@@ -146,44 +146,62 @@ export function ShipMap({ ship, error, track = [], itineraryEndpoint }: Props) {
     return segments;
   }, [path]);
 
-  useEffect(() => {
-    if (!itineraryEndpoint) {
-      setItineraryRows([]);
-      setItineraryDayIndex(null);
-      return;
-    }
+ useEffect(() => {
+  if (!itineraryEndpoint) {
+    setItineraryRows([]);
+    setItineraryDayIndex(null);
+    return;
+  }
 
-    const url = itineraryEndpoint;
-    let cancelled = false;
+  let cancelled = false;
+  let intervalId: any = null;
 
-    async function load() {
-      try {
-        const res = await fetch(url, { cache: "no-store" });
-        if (!res.ok) throw new Error(`Itinerary API error: ${res.status}`);
+  async function load() {
+    try {
+      const res = await fetch(itineraryEndpoint!, { cache: "no-store" });
+      if (!res.ok) throw new Error(`Itinerary API error: ${res.status}`);
 
-        const json = await res.json();
+      const json = await res.json();
 
-        const rowsRaw = Array.isArray(json?.rows) ? json.rows : [];
-        const idx = typeof json?.currentDayIndex === "number" ? json.currentDayIndex : null;
+      const rowsRaw = Array.isArray(json?.rows) ? json.rows : [];
+      const idx = typeof json?.currentDayIndex === "number" ? json.currentDayIndex : null;
 
-        if (!cancelled) {
-          setItineraryRows(rowsRaw as ItineraryRow[]);
-          setItineraryDayIndex(idx);
-        }
-      } catch (e) {
-        console.error("Itinerary load failed:", e);
-        if (!cancelled) {
-          setItineraryRows([]);
-          setItineraryDayIndex(null);
-        }
+      if (!cancelled) {
+        setItineraryRows(rowsRaw as ItineraryRow[]);
+        setItineraryDayIndex(idx);
+
+        //  debug:
+        // console.log("ShipMap itinerary refresh:", { sailingId: json?.sailingId, currentDayIndex: idx });
+      }
+    } catch (e) {
+      console.error("Itinerary load failed:", e);
+      if (!cancelled) {
+        setItineraryRows([]);
+        setItineraryDayIndex(null);
       }
     }
+  }
 
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [itineraryEndpoint]);
+  // 1) load immediately
+  load();
+
+  // 2) poll every 60s (adjust if you want)
+  intervalId = setInterval(load, 60_000);
+
+  // 3) refresh when tab comes back
+  const onVis = () => {
+    if (document.visibilityState === "visible") load();
+  };
+  document.addEventListener("visibilitychange", onVis);
+  window.addEventListener("focus", load);
+
+  return () => {
+    cancelled = true;
+    if (intervalId) clearInterval(intervalId);
+    document.removeEventListener("visibilitychange", onVis);
+    window.removeEventListener("focus", load);
+  };
+}, [itineraryEndpoint]);
 
 const itineraryMarkers = useMemo(() => {
   const keyFor = (lat: number, lng: number) => {
