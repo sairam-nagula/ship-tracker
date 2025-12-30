@@ -1,52 +1,52 @@
 // app/api/Kapture/geocode_cache.ts
-import fs from "fs/promises";
-import path from "path";
+import { kv } from "@vercel/kv";
 
-export type LatLng = { lat: number; lng: number };
-
-type CacheFile = {
-  version: 1;
-  updatedAt: string;
-  entries: Record<string, LatLng>;
+export type LatLng = {
+  lat: number;
+  lng: number;
 };
 
-const CACHE_DIR = path.join(process.cwd(), "data");
-const CACHE_PATH = path.join(CACHE_DIR, "geocode-cache.json");
-
-function keyFor(place: string): string {
-  return (place || "").trim().toLowerCase();
+function normalizeKey(place: string): string {
+  return place.trim().toLowerCase();
 }
 
-async function readCache(): Promise<CacheFile> {
+const PREFIX = "geocode:";
+
+export async function getCachedLatLng(place: string): Promise<LatLng | null> {
+  if (!place) return null;
+
+  const key = PREFIX + normalizeKey(place);
+
   try {
-    const raw = await fs.readFile(CACHE_PATH, "utf8");
-    const parsed = JSON.parse(raw) as CacheFile;
-    if (!parsed || parsed.version !== 1 || typeof parsed.entries !== "object") {
-      throw new Error("bad cache shape");
+    const value = await kv.get<LatLng>(key);
+    if (!value) return null;
+
+    if (
+      typeof value.lat !== "number" ||
+      typeof value.lng !== "number"
+    ) {
+      return null;
     }
-    return parsed;
-  } catch {
-    return { version: 1, updatedAt: new Date().toISOString(), entries: {} };
+
+    return value;
+  } catch (err) {
+    console.error("[geocode_cache] KV get failed", err);
+    return null;
   }
 }
 
-async function writeCache(cache: CacheFile): Promise<void> {
-  await fs.mkdir(CACHE_DIR, { recursive: true });
-  cache.updatedAt = new Date().toISOString();
-  await fs.writeFile(CACHE_PATH, JSON.stringify(cache, null, 2), "utf8");
-}
+export async function setCachedLatLng(
+  place: string,
+  latlng: LatLng
+): Promise<void> {
+  if (!place) return;
 
-export async function getCachedLatLng(place: string): Promise<LatLng | null> {
-  const k = keyFor(place);
-  if (!k) return null;
-  const cache = await readCache();
-  return cache.entries[k] ?? null;
-}
+  const key = PREFIX + normalizeKey(place);
 
-export async function setCachedLatLng(place: string, latlng: LatLng): Promise<void> {
-  const k = keyFor(place);
-  if (!k) return;
-  const cache = await readCache();
-  cache.entries[k] = latlng;
-  await writeCache(cache);
+  try {
+    // Store permanently (no TTL)
+    await kv.set(key, latlng);
+  } catch (err) {
+    console.error("[geocode_cache] KV set failed", err);
+  }
 }
