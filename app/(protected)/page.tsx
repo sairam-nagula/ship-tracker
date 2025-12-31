@@ -9,31 +9,21 @@ import { useGoogleMapsLoader } from "../components/useGoogleMapsLoader";
 export default function HomePage() {
   const { isLoaded } = useGoogleMapsLoader();
 
-  const {
-    ship: islanderShip,
-    error: islanderError,
-  } = useShipLocation(30000, "islander");
-
+  const { ship: islanderShip, error: islanderError } = useShipLocation(30000, "islander");
   const { track: islanderTrack = [] } = useShipTrack("islander");
 
-  const {
-    ship: paradiseShip,
-    error: paradiseError,
-  } = useShipLocation(30000, "paradise");
-
+  const { ship: paradiseShip, error: paradiseError } = useShipLocation(30000, "paradise");
   const { track: paradiseTrack = [] } = useShipTrack("paradise");
 
   return (
     <main className="home-root">
       <div className="home-inner">
-        <img src="/MVASlogo.png" alt="MVAS Logo" className="main-home-Logo" />
+        <img src="/MVASlogo.png" alt="MVAS Logo" className="home-brand-logo" />
+
         <h1 className="home-title">Ship Tracker</h1>
-        <p className="home-subtitle">
-          Choose a vessel to view its live position and status.
-        </p>
+        <p className="home-subtitle">Choose a vessel to view its live position and status.</p>
 
         <div className="home-grid">
-          {/* Islander card */}
           <section className="home-ship-card">
             <header className="home-ship-header">
               <div className="home-ship-info">
@@ -44,9 +34,7 @@ export default function HomePage() {
                 />
                 <div className="home-ship-text">
                   <h2 className="ship-choice-name">MVAS Islander</h2>
-                  <p className="home-ship-sub">
-                    Live position preview for Islander.
-                  </p>
+                  <p className="home-ship-sub">Live position preview for Islander.</p>
                 </div>
               </div>
 
@@ -65,7 +53,6 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* Paradise card */}
           <section className="home-ship-card">
             <header className="home-ship-header">
               <div className="home-ship-info">
@@ -76,9 +63,7 @@ export default function HomePage() {
                 />
                 <div className="home-ship-text">
                   <h2 className="ship-choice-name">MVAS Paradise</h2>
-                  <p className="home-ship-sub">
-                    Live position preview for Paradise.
-                  </p>
+                  <p className="home-ship-sub">Live position preview for Paradise.</p>
                 </div>
               </div>
 

@@ -328,136 +328,152 @@ html, body {
    5. HOMEPAGE — SOLID BRAND COLOR  
    ========================================================================== */
 
+/* ==========================================================================
+   5. HOMEPAGE — MATCH SHIP TRACKER THEME
+   ========================================================================== */
+
 .home-root {
+  height: 100vh;
+  padding: 24px;
+  box-sizing: border-box;
+  background: linear-gradient(
+    180deg,
+    var(--ship-info-panel-mid),
+    var(--ship-info-panel-deep)
+  );
   display: flex;
   justify-content: center;
-  padding: 20px;
-  height: 100vh;         
-  box-sizing: border-box; 
-  background: #00407A;
 }
 
-.main-Logo {
-  width: 25%;
-  margin: 0 auto;
-  display: block;
-}
- 
 .home-inner {
-  width: 100%;
+  width: min(1400px, 100%);
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
-/* Title + Subtitle */
+.home-brand-logo {
+  width: 220px;
+  max-width: 50%;
+  margin: 0 auto;
+  display: block;
+  opacity: 0.96;
+}
+
 .home-title {
+  margin: 14px 0 6px;
   text-align: center;
-  font-size: 2.2rem;
-  font-weight: 300;
-  margin-bottom: 5px;
-  color: #FFFFFF;
-  letter-spacing: 0.04em;
+  font-family: "Silent Asia", cursive;
+  font-size: 64px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.01em;
+  line-height: 1;
 }
 
 .home-subtitle {
   text-align: center;
-  font-size: 1.05rem;
+  font-family: "Brandon Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  font-size: 20px;
   color: rgba(255, 255, 255, 0.75);
-  margin-bottom: 40px;
+  margin: 0 0 22px;
 }
 
 .home-grid {
-  flex: 1;        
+  flex: 1;
   display: grid;
-  gap: 30px;
-  width: 100%;
-  align-content: stretch; 
+  gap: 22px;
+  align-content: stretch;
 }
-
 
 @media (min-width: 900px) {
   .home-grid {
-    grid-template-columns: repeat(auto-fit, minmax(520px, 1fr));
+    grid-template-columns: repeat(2, minmax(520px, 1fr));
   }
-} 
+}
 
-
-/* Ship cards */
 .home-ship-card {
-  background: rgba(0, 40, 80, 0.85); /* soft navy */
+  background: rgba(3, 24, 49, 0.88);
   border-radius: 14px;
-  padding: 24px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 22px;
+  border: 1px solid var(--ship-info-panel-border);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
   display: flex;
   flex-direction: column;
-  gap: 18px; 
-  backdrop-filter: blur(6px);
+  gap: 16px;
 }
 
-.main-home-Logo {
-  width: 15%;
-  margin: 0 auto;
-  display: block;
-}
-
-/* Header inside each card */
 .home-ship-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 14px;
 }
 
-/* Ship logo + text */
 .home-ship-info {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .ship-choice-logo {
-  width: 60px;
+  width: 62px;
   height: auto;
+  flex: 0 0 auto;
 }
 
-.home-ship-text h2 {
-  font-size: 1.35rem;
-  font-weight: 700;
+.ship-choice-name {
   margin: 0;
-  color: var(--text-soft);
+  font-family: "Brandon Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.1;
 }
 
 .home-ship-sub {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  margin-top: 2px;
+  margin: 4px 0 0;
+  font-family: "Brandon Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
 }
 
-/* Button */
 .home-ship-button {
-  padding: 10px 18px;
-  background: #6699C2; /* Ocean */
-  color: #00264a;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 700;
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: var(--ship-info-panel-yellow);
+  color: #00407a;
+  font-family: "Brandon Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   text-decoration: none;
-  transition: 0.15s ease;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease, filter 0.15s ease;
+  flex: 0 0 auto;
 }
 
 .home-ship-button:hover {
-  background: #7fb3dc;
   transform: translateY(-1px);
+  filter: brightness(1.03);
 }
 
 .home-map-wrapper {
   width: 100%;
-  height: 100%; 
+  flex: 1;
+  min-height: 280px;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: #001829;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(2, 22, 39, 0.7);
 }
 
 
