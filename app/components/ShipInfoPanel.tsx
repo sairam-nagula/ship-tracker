@@ -3,7 +3,6 @@
 
 import { useEffect, useState } from "react";
 import type { ShipLocation } from "./useShipLocation";
-import { on } from "events";
 
 type ItineraryRow = {
   date: string;
@@ -339,7 +338,7 @@ useEffect(() => {
     document.removeEventListener("visibilitychange", onVis);
     window.removeEventListener("focus", onFocus);
   };
-}, [itineraryEndpoint, hasLoadedItineraryOnce]);
+}, [itineraryEndpoint]);
 
 
 
