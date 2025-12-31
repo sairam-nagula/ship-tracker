@@ -566,6 +566,9 @@ body {
   flex-direction: column;
   z-index: 10;
   box-shadow: 1px 0 35px rgba(0, 0, 0, 0.45);
+  user-select: none;
+  -webkit-user-select: none;
+  caret-color: transparent;
 }
  
 
