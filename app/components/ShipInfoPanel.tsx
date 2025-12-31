@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import type { ShipLocation } from "./useShipLocation";
+import { on } from "events";
 
 type ItineraryRow = {
   date: string;
@@ -179,6 +180,9 @@ export function ShipInfoPanel({
   const [itineraryLoading, setItineraryLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
+  const [hasLoadedItineraryOnce, setHasLoadedItineraryOnce] = useState(false);
+
+
   const [weather, setWeather] = useState<WeatherState | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
 
@@ -191,32 +195,6 @@ export function ShipInfoPanel({
   // Pick weather icon code from fetched weather first, fallback to ship
   const weatherLocalIcon = weather?.weatherIconLocal ?? null;
 
-  // Load itinerary data
-  useEffect(() => {
-    if (!itineraryEndpoint) return;
-
-    async function loadItinerary() {
-      try {
-        setItineraryLoading(true);
-        setItineraryError(null);
-
-        const res = await fetch(itineraryEndpoint, { cache: "no-store" });
-        if (!res.ok) {
-          throw new Error(`Itinerary API error: ${res.status}`);
-        }
-
-        const json = (await res.json()) as { rows?: ItineraryRow[] };
-        setItinerary(json.rows ?? []);
-      } catch (e: any) {
-        console.error(e);
-        setItineraryError(e?.message || "Failed to load itinerary");
-      } finally {
-        setItineraryLoading(false);
-      }
-    }
-
-    loadItinerary();
-  }, [itineraryEndpoint]);
 
   // Load weather data from the correct endpoint
   useEffect(() => {
@@ -292,65 +270,77 @@ useEffect(() => {
   let cancelled = false;
   let intervalId: any = null;
 
-  async function loadItinerary() {
-    try {
+  async function loadItinerary(isBackgroundRefresh: boolean) {
+  try {
+    // Only show loading on the very first load (when we have no data yet)
+    if (!isBackgroundRefresh && !hasLoadedItineraryOnce) {
       setItineraryLoading(true);
-      setItineraryError(null);
+    }
 
-      const res = await fetch(itineraryEndpoint, { cache: "no-store" });
-      if (!res.ok) throw new Error(`Itinerary API error: ${res.status}`);
+    setItineraryError(null);
 
-      const json = (await res.json()) as {
-        rows?: ItineraryRow[];
-        currentDayIndex?: number | null;
-        sailingId?: string | null;
-        sailingStartDateISO?: string | null;
-      };
+    const res = await fetch(itineraryEndpoint, { cache: "no-store" });
+    if (!res.ok) throw new Error(`Itinerary API error: ${res.status}`);
 
-      if (cancelled) return;
+    const json = (await res.json()) as {
+      rows?: ItineraryRow[];
+      currentDayIndex?: number | null;
+      sailingId?: string | null;
+      sailingStartDateISO?: string | null;
+    };
 
-      setItinerary(json.rows ?? []);
-      setActiveIndex(typeof json.currentDayIndex === "number" ? json.currentDayIndex : null);
+    if (cancelled) return;
 
-      // Optional: log switches so you can confirm it’s updating on prod
-      // console.log("Itinerary refresh:", {
-      //   sailingId: json.sailingId,
-      //   currentDayIndex: json.currentDayIndex,
-      //   start: json.sailingStartDateISO,
-      // });
-    } catch (e: any) {
-      console.error(e);
-      if (!cancelled) {
+    setItinerary(json.rows ?? []);
+    setActiveIndex(typeof json.currentDayIndex === "number" ? json.currentDayIndex : null);
+
+    // Mark that we have loaded successfully at least once
+    if (!hasLoadedItineraryOnce) {
+      setHasLoadedItineraryOnce(true);
+      setItineraryLoading(false);
+    }
+  } catch (e: any) {
+    console.error(e);
+    if (!cancelled) {
+      // If we already have data, keep it and just store error
+      // Only wipe data if we never loaded successfully
+      if (!hasLoadedItineraryOnce) {
         setItinerary([]);
         setActiveIndex(null);
-        setItineraryError(e?.message || "Failed to load itinerary");
+        setItineraryLoading(false);
       }
-    } finally {
-      if (!cancelled) setItineraryLoading(false);
+      setItineraryError(e?.message || "Failed to load itinerary");
     }
   }
+}
+
 
   // 1) Load immediately
-  loadItinerary();
+  loadItinerary(false);
 
   // 2) Poll (pick an interval that makes sense for the TVs)
   // 60s is fine; 120s also fine. I’ll do 60s so day switches are quick.
-  intervalId = setInterval(loadItinerary, 60_000);
+  intervalId = setInterval(() => loadItinerary(true), 60_000);
+
 
   // 3) Refresh when tab becomes visible again
   const onVis = () => {
-    if (document.visibilityState === "visible") loadItinerary();
+    if (document.visibilityState === "visible") loadItinerary(true);
   };
   document.addEventListener("visibilitychange", onVis);
-  window.addEventListener("focus", loadItinerary);
+
+  const onFocus = () => loadItinerary(true);
+  window.addEventListener("focus", onFocus);
+
 
   return () => {
     cancelled = true;
     if (intervalId) clearInterval(intervalId);
     document.removeEventListener("visibilitychange", onVis);
-    window.removeEventListener("focus", loadItinerary);
+    window.removeEventListener("focus", onFocus);
   };
-}, [itineraryEndpoint]);
+}, [itineraryEndpoint, hasLoadedItineraryOnce]);
+
 
 
   // Prefer fetched weather; fall back to ship
@@ -377,13 +367,15 @@ return (
         </div>
 
         <div className="ship-info-panel-itinerary">
-          {itineraryLoading && (
+          {!hasLoadedItineraryOnce && itineraryLoading && (
             <div className="ship-info-panel-itin-loading">
               Loading itinerary…
             </div>
           )}
 
-          {!itineraryLoading && (itinerary?.length ?? 0) > 0 && (
+
+          {(itinerary?.length ?? 0) > 0 && (
+
             <>
               {(itinerary ?? []).slice(startIdx, startIdx + 3).map((row, i) => {
                 const actualIndex = startIdx + i;
