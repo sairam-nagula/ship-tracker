@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { geocodePlace } from "../geocode";
+import { geocodePlace } from "./geocode";
 
 export const runtime = "nodejs";
 
