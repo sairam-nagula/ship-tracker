@@ -18,6 +18,7 @@ const dashedLineSymbol = {
 };
 
 
+
 export type ShipTrackPoint = {
   lat: number;
   lng: number;
@@ -82,6 +83,10 @@ function isAtSea(port: string | null | undefined): boolean {
 
 export function ShipMap({ ship, error, track = [], itineraryEndpoint }: Props) {
   const { isLoaded } = useGoogleMapsLoader();
+
+  
+  const [estimatedRoute, setEstimatedRoute] = useState<{ lat: number; lng: number }[]>([]);
+  const lastRouteKeyRef = useRef<string>("");
 
   const [itineraryRows, setItineraryRows] = useState<ItineraryRow[]>([]);
   const [itineraryDayIndex, setItineraryDayIndex] = useState<number | null>(null);
@@ -253,6 +258,34 @@ const itineraryMarkers = useMemo(() => {
   return Array.from(byPos.values()).sort((a, b) => a.index - b.index);
 }, [itineraryRows, itineraryDayIndex]);
 
+const routeDestination = useMemo(() => {
+  if (!itineraryMarkers.length) return null;
+
+  const activeIdx = itineraryMarkers.findIndex((m) => m.isActive);
+
+  const isSea = (port: string) => isAtSea(port);
+
+  // 1) If active marker is a real port, use it
+  if (activeIdx >= 0 && !isSea(itineraryMarkers[activeIdx].port)) {
+    return itineraryMarkers[activeIdx].pos;
+  }
+
+  // 2) Otherwise, find next non-sea marker after active
+  if (activeIdx >= 0) {
+    for (let i = activeIdx + 1; i < itineraryMarkers.length; i++) {
+      if (!isSea(itineraryMarkers[i].port)) return itineraryMarkers[i].pos;
+    }
+  }
+
+  // 3) Otherwise, just pick the last non-sea marker
+  for (let i = itineraryMarkers.length - 1; i >= 0; i--) {
+    if (!isSea(itineraryMarkers[i].port)) return itineraryMarkers[i].pos;
+  }
+
+  return null;
+}, [itineraryMarkers]);
+
+
 
 
   // Keep the map framing to include ship + all itinerary markers
@@ -270,6 +303,70 @@ const itineraryMarkers = useMemo(() => {
 
     map.fitBounds(bounds, 280);
   }, [itineraryMarkers, ship]);
+
+
+  useEffect(() => {
+  if (!routeDestination) {
+    setEstimatedRoute([]);
+    lastRouteKeyRef.current = "";
+    return;
+  }
+
+  // Use your displayed markerPosition as the "current" point (better than shipCenter)
+  const start = markerPosition;
+  const end = routeDestination;
+
+  if (!Number.isFinite(start.lat) || !Number.isFinite(start.lng)) return;
+  if (!Number.isFinite(end.lat) || !Number.isFinite(end.lng)) return;
+
+  // Key: destination + rounded start (so it doesn't refetch for tiny drift)
+  const r = (n: number) => Math.round(n * 1000) / 1000; // ~0.001 deg
+  const routeKey = `${r(start.lat)},${r(start.lng)}->${r(end.lat)},${r(end.lng)}`;
+
+  // Avoid re-fetching same route
+  if (lastRouteKeyRef.current === routeKey) return;
+  lastRouteKeyRef.current = routeKey;
+
+  const controller = new AbortController();
+
+  async function loadRoute() {
+    try {
+      const qs = new URLSearchParams({
+        startLat: String(start.lat),
+        startLng: String(start.lng),
+        endLat: String(end.lat),
+        endLng: String(end.lng),
+        units: "nauticalmiles",
+      });
+
+      const res = await fetch(`/api/sea-route?${qs.toString()}`, {
+        signal: controller.signal,
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        setEstimatedRoute([]);
+        return;
+      }
+
+      const data = await res.json();
+
+      if (Array.isArray(data?.path) && data.path.length > 1) {
+        setEstimatedRoute(data.path);
+      } else {
+        setEstimatedRoute([]);
+      }
+    } catch (e) {
+      // If aborted, ignore
+      setEstimatedRoute([]);
+    }
+  }
+
+  loadRoute();
+
+  return () => controller.abort();
+}, [markerPosition, routeDestination]);
+
 
   const destinationIcon = useMemo(() => {
     if (typeof window === "undefined") return undefined;
@@ -331,6 +428,27 @@ const itineraryMarkers = useMemo(() => {
               ],
             }}
           >
+            {estimatedRoute.length > 1 && (
+              <PolylineF
+                path={estimatedRoute}
+                options={{
+                  geodesic: true,
+                  strokeOpacity: 0, // hide base stroke, show only dashed symbols
+                  strokeWeight: 2,
+                  icons: [
+                    {
+                      icon: dashedLineSymbol as any,
+                      offset: "0",
+                      repeat: "14px",
+                    },
+                  ],
+                  zIndex: 5,
+                } as google.maps.PolylineOptions}
+              />
+            )}
+
+
+
             {fadedSegments.map((segment, idx) => (
               <PolylineF
                 key={idx}
@@ -347,7 +465,6 @@ const itineraryMarkers = useMemo(() => {
             ))}
 
             {itineraryMarkers.map((m) => {
-              const dayNum = m.index + 1;
               const totalDays = itineraryRows.length;
 
               let labelText: string;
