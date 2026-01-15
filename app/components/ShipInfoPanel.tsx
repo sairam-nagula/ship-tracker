@@ -319,7 +319,7 @@ useEffect(() => {
 
   // 2) Poll (pick an interval that makes sense for the TVs)
   // 60s is fine; 120s also fine. I’ll do 60s so day switches are quick.
-  intervalId = setInterval(() => loadItinerary(true), 60_000);
+  intervalId = setInterval(() => loadItinerary(true), 30 * 60_000);
 
 
   // 3) Refresh when tab becomes visible again
